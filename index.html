@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Hero Soul Calculator: spend your unspent hero souls on the ancients that push your next ascension the furthest.">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Hero Soul Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&family=Cinzel:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one working column — settings row, summary strip, then the ancient ledger table where inputs and results share each row. */
+:root {
+  --bg: #eceff4;
+  --surface: #fafbfd;
+  --sunk: #e2e7ee;
+  --ink: #18202b;
+  --muted: #5b6778;
+  --line: #d2d9e3;
+  --soul: #16809a;
+  --soul-soft: #d6eef3;
+  --gold: #9a650b;
+  --gold-soft: #f4e8d0;
+  --danger: #b3362f;
+  --font-display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --font-body: "Albert Sans", "Segoe UI", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #161d26; --sunk: #1d2631; --ink: #e5eaf1; --muted: #93a0b3;
+    --line: #2a3443; --soul: #5ec6dc; --soul-soft: #173540; --gold: #e3ad4c; --gold-soft: #3a2d14;
+    --danger: #f0817a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161d26; --sunk: #1d2631; --ink: #e5eaf1; --muted: #93a0b3;
+  --line: #2a3443; --soul: #5ec6dc; --soul-soft: #173540; --gold: #e3ad4c; --gold-soft: #3a2d14;
+  --danger: #f0817a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 960px; margin: 0 auto; display: grid; gap: 22px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--soul); margin: 0; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: .02em; }
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+h2 { font-family: var(--font-display); font-size: 17px; letter-spacing: .04em; margin: 0; }
+
+.settings { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; }
+@media (max-width: 680px) { .settings { grid-template-columns: 1fr 1fr; } .settings .field:first-child { grid-column: 1 / -1; } }
+.field { display: grid; gap: 5px; align-content: start; min-width: 0; }
+.field label { font-size: 13px; font-weight: 600; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.field .err { font-size: 12px; color: var(--danger); }
+input[type="text"] {
+  font-family: var(--font-num); font-size: 15px; font-variant-numeric: tabular-nums;
+  width: 100%; min-width: 0; padding: 9px 11px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+input[type="text"]:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--soul); outline-offset: 2px; }
+input[aria-invalid="true"] { border-color: var(--danger); }
+
+.summary {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+}
+@media (max-width: 680px) { .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { padding: 14px 16px; display: grid; gap: 2px; border-right: 1px solid var(--line); min-width: 0; }
+.stat:last-child { border-right: 0; }
+@media (max-width: 680px) { .stat:nth-child(2) { border-right: 0; } .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); } }
+.stat .k { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.stat .v { font-family: var(--font-num); font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat.zones { background: var(--soul-soft); }
+.stat.zones .v { color: var(--soul); }
+
+.message { margin: 0; font-size: 14px; color: var(--muted); }
+.message.warn { color: var(--danger); }
+
+.ledger-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
+.ledger-head .sample { font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn {
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 6px 12px; border-radius: 7px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink);
+}
+.btn:hover { border-color: var(--soul); }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; min-width: 660px; }
+th, td { padding: 9px 14px; text-align: left; vertical-align: middle; }
+thead th { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); background: var(--sunk); }
+th.num, td.num { text-align: right; }
+tbody tr + tr td { border-top: 1px solid var(--line); }
+tr.group td { background: var(--sunk); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding-block: 6px; }
+tr.group.damage td { color: var(--soul); }
+tr.group.gold td { color: var(--gold); }
+tr.group.util td { color: var(--muted); }
+tr.util-row .delta { background: var(--sunk); color: var(--ink); }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-left: 6px; }
+.tag.damage { color: var(--soul); }
+.tag.gold { color: var(--gold); }
+.anc-name { font-weight: 600; }
+.anc-effect { display: block; font-size: 12px; color: var(--muted); }
+td input[type="text"] { width: 130px; padding: 6px 8px; font-size: 14px; }
+.n { font-family: var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.target { font-weight: 500; }
+.dim { color: var(--muted); }
+.delta {
+  font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 14px; cursor: pointer;
+  border: 1px solid transparent; border-radius: 6px; padding: 3px 8px; white-space: nowrap;
+  background: var(--soul-soft); color: var(--soul);
+}
+tr.gold-row .delta { background: var(--gold-soft); color: var(--gold); }
+.delta:hover { border-color: currentColor; }
+.copied { font-size: 11px; color: var(--muted); margin-left: 6px; }
+
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
+summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+details[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+details .body { display: grid; gap: 12px; padding-bottom: 16px; max-width: 70ch; }
+details p { margin: 0; }
+code, .mono { font-family: var(--font-num); font-size: .92em; }
+
+@media (prefers-reduced-motion: no-preference) { .delta, .btn { transition: border-color .15s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Active build · Ancients</p>
+    <h1>Hero Soul Calculator</h1>
+    <p class="lede">Enter your unspent hero souls and current ancient levels. The calculator spends the souls where they push your next ascension the furthest.</p>
+  </header>
+
+  <section class="settings" aria-label="Your souls and outsiders">
+    <div class="field">
+      <label for="souls">Unspent hero souls</label>
+      <input type="text" id="souls" inputmode="decimal" autocomplete="off" spellcheck="false">
+      <span class="hint">Plain numbers or scientific, like 2.5e9 or 1.3e450</span>
+      <span class="err" id="souls-err" hidden></span>
+    </div>
+    <div class="field">
+      <label for="chor">Chor'gorloth level</label>
+      <input type="text" id="chor" inputmode="numeric" autocomplete="off">
+      <span class="hint">−5% ancient cost per level, max 150</span>
+      <span class="err" id="chor-err" hidden></span>
+    </div>
+    <div class="field">
+      <label for="zone">Highest zone reached</label>
+      <input type="text" id="zone" inputmode="numeric" autocomplete="off">
+      <span class="hint">Optional. Used for the zone estimate and from zone 5000 assumes your best hero is past level 8000</span>
+      <span class="err" id="zone-err" hidden></span>
+    </div>
+  </section>
+
+  <section class="summary" aria-live="polite">
+    <div class="stat"><span class="k">To spend</span><span class="v" id="s-budget">0</span></div>
+    <div class="stat"><span class="k">Used</span><span class="v" id="s-used">0</span></div>
+    <div class="stat"><span class="k">Left over</span><span class="v" id="s-left">0</span></div>
+    <div class="stat zones"><span class="k">Extra zones (est.)</span><span class="v" id="s-zones">—</span></div>
+  </section>
+  <p class="message" id="message" hidden></p>
+
+  <section style="display:grid;gap:10px">
+    <div class="ledger-head">
+      <h2>Your ancients</h2>
+      <div class="sample">
+        <span id="sample-note">Showing example levels. Replace them with yours.</span>
+        <button class="btn" type="button" id="btn-example">Load example</button>
+        <button class="btn" type="button" id="btn-clear">Clear levels</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Ancient</th><th>Current level</th><th class="num">Level to</th><th class="num">Add levels</th><th class="num">Cost (souls)</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="message">Tap an "Add levels" number to copy it. 1% of your souls goes to Kagevar, Animus and Questra.</p>
+  </section>
+
+  <details>
+    <summary>How the calculator decides</summary>
+    <div class="body">
+      <p>Your run stops at the zone where your damage can no longer keep up with monster HP. Every ancient here multiplies either your damage or your gold, and gold becomes damage by buying hero levels.</p>
+      <p>Each 25 hero levels multiply damage by 4 and cost 5.43× more gold, so 1% more gold is worth about 0.85% more damage, or 0.82% once your best hero is past level 8000. The calculator assumes that happens from zone 5000. It gives each soul to the ancient where it adds the most damage, counting gold at that rate.</p>
+      <p>At high levels this lands on fixed ratios: Morvain and Orelian equal to Wrathgar, the gold ancients about 0.9× Wrathgar, Rumbleheart about Wrathgar<sup>0.8</sup>, and Mortessa about Wrathgar².</p>
+      <p>99% of your souls go to the damage and gold ancients. The other 1% is split evenly between Kagevar, Animus and Questra. If you own none of those three, everything goes to damage and gold.</p>
+      <p>The zone estimate compares the damage gain with how fast monster HP and gold grow per zone at your highest zone. Treat it as a rough guide.</p>
+    </div>
+  </details>
+
+</div>
+
+<script>
+// ---------- Game data: edit here if your game's ancients differ ----------
+// cost: "n" = next level costs n souls, "n1.5" = n^1.5, "flat" = 1 soul, "2n" = 2^n
+// k: the ancient's multiplier is proportional to (k + level), e.g. +20%/level → 1 + 0.2L ∝ 5 + L
+const SECTIONS = [
+  { id: "flat",  label: "1 soul per level",      cls: "damage" },
+  { id: "n",     label: "Cost = level number",   cls: "damage" },
+  { id: "n1.5",  label: "Cost = level^1.5",      cls: "damage" },
+  { id: "2n",    label: "Cost = 2^level",        cls: "gold" },
+  { id: "util",  label: "Utility · 1% of souls · cost = 2^level", cls: "util" },
+];
+const ANCIENTS = [
+  { id: "morgulis",   name: "Mortessa",    section: "flat", group: "damage", effect: "+11% DPS per level",                     cost: "flat", k: 1 / 0.11 },
+  { id: "argaiv",     name: "Orelian",     section: "n",    group: "damage", effect: "+2% gild bonus per gild, per level",     cost: "n",    k: 25 },
+  { id: "fragsworth", name: "Wrathgar",    section: "n",    group: "damage", effect: "+20% click damage per level",            cost: "n",    k: 5 },
+  { id: "bhaal",      name: "Morvain",     section: "n",    group: "damage", effect: "+15% critical click damage per level",   cost: "n",    k: 1 / 0.15 },
+  { id: "mammon",     name: "Mammon",      section: "n",    group: "gold",   effect: "+5% gold per level",                     cost: "n",    k: 20 },
+  { id: "mimzee",     name: "Coffra",      section: "n",    group: "gold",   effect: "+50% treasure chest gold per level",     cost: "n",    k: "chest" },
+  { id: "pluto",      name: "Aurix",       section: "n",    group: "gold",   effect: "+30% Golden Clicks gold per level",      cost: "n",    k: 1 / 0.3 },
+  { id: "juggernaut", name: "Rumbleheart", section: "n1.5", group: "damage", effect: "+0.01% DPS per combo click, per level",  cost: "n1.5", k: 0 },
+  { id: "dogcog",     name: "Dogcog",      section: "2n",   group: "gold",   effect: "Cheaper hero levels (max useful 3743)",  cost: "2n",   k: null },
+];
+const UTILITY = [
+  { id: "kuma",  name: "Kagevar", section: "util", group: "util", effect: "Fewer monsters per zone",      cost: "2n" },
+  { id: "atman", name: "Animus",  section: "util", group: "util", effect: "Higher primal boss chance (max useful 2880)", cost: "2n", cap: 2880 },
+  { id: "dora",  name: "Questra", section: "util", group: "util", effect: "Higher treasure chest chance", cost: "2n" },
+];
+const UTIL_SHARE = 0.01;
+const BANK = { id: "bank", name: "Keep unspent", group: "damage", cost: "flat", k: 10 };
+
+const EXAMPLE = {
+  souls: "2.5e9", chor: "45", zone: "5200",
+  levels: { morgulis: "8.1e7", argaiv: "9000", fragsworth: "9000", bhaal: "9000", mammon: "8330", mimzee: "8330",
+            pluto: "8330", juggernaut: "1450", dogcog: "60", kuma: "20", atman: "22", dora: "18" },
+};
+
+// ---------- Big-number helpers (all values kept as log10) ----------
+const LOG2 = Math.log10(2), LN10 = Math.LN10, NEG = -Infinity;
+function parseBig(s) {
+  s = String(s ?? "").trim().replace(/[,_\s]/g, "").toLowerCase();
+  if (!s) return null;
+  const m = s.match(/^(\d+(?:\.\d*)?|\.\d+)(?:e\+?(-?\d+))?$/);
+  if (!m) return NaN;
+  const mant = parseFloat(m[1]), ex = m[2] ? parseInt(m[2], 10) : 0;
+  return mant === 0 ? NEG : Math.log10(mant) + ex;
+}
+function addLog(a, b) { if (a === NEG) return b; if (b === NEG) return a; const m = Math.max(a, b); return m + Math.log10(10 ** (a - m) + 10 ** (b - m)); }
+function subLog(a, b) { if (b === NEG) return a; const d = b - a; if (d >= -1e-14) return NEG; return a + Math.log10(-Math.expm1(d * LN10)); }
+function formatBig(l) {
+  if (l === NEG || l === null || Number.isNaN(l)) return "0";
+  if (l < 9) return Math.round(10 ** l).toLocaleString("en-US");
+  let ex = Math.floor(l), mant = 10 ** (l - ex);
+  if (mant >= 9.9995) { mant = 1; ex += 1; }
+  return mant.toFixed(3) + "e" + ex;
+}
+function exactInt(l) { if (l === NEG) return "0"; return l < 15 ? String(Math.round(10 ** l)) : formatBig(l); }
+function floorLog(l) { if (l === NEG || l >= 15) return l; const v = Math.floor(10 ** l + 1e-6); return v > 0 ? Math.log10(v) : NEG; }
+
+// ---------- Ancient math ----------
+function kOf(a, p) { if (a.k === "chest") return (1 + 9 * p.chest) / (5 * p.chest); return a.k; }
+function weight(a, p) { return a.group === "gold" ? p.alpha : 1; }
+const DOG_R = 0.9999999999;
+function dogDln(L) { const e = Math.exp(-0.01 * L); return DOG_R * 0.01 * e / (1 - DOG_R * (1 - e)); }
+function dogLnEff(L) { return -Math.log(1 - DOG_R * (1 - Math.exp(-0.01 * L))); }
+
+// log10 of the level where one more soul gives gain lLam
+function levelFor(a, lLam, p) {
+  const w = weight(a, p), k = kOf(a, p);
+  if (a.cost === "2n") {
+    const f = L => Math.log10(w * dogDln(L)) - L * LOG2 - p.lChor - lLam;
+    if (f(0) <= 0) return NEG;
+    if (f(3743) > 0) return Math.log10(3743);
+    let lo = 0, hi = 3743;
+    for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; }
+    return lo > 0 ? Math.log10(lo) : NEG;
+  }
+  const lQ = Math.log10(w) - lLam - p.lChor;
+  if (a.cost === "n") {
+    if (lQ > 30) return lQ / 2;
+    const Q = 10 ** lQ, L = (-k + Math.sqrt(k * k + 4 * Q)) / 2;
+    return L > 0 ? Math.log10(L) : NEG;
+  }
+  if (a.cost === "n1.5") {
+    if (lQ > 40 || k === 0) return lQ / 2.5;
+    const Q = 10 ** lQ; let lo = 0, hi = Q ** 0.4 + 1;
+    for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if ((k + m) * m ** 1.5 < Q) lo = m; else hi = m; }
+    return lo > 0 ? Math.log10(lo) : NEG;
+  }
+  // flat
+  if (lQ > 20) return lQ;
+  const L = 10 ** lQ - k;
+  return L > 0 ? Math.log10(L) : NEG;
+}
+// log10 of total souls to raise an ancient from 0 to L (before Chor'gorloth)
+function cumLog(a, l) {
+  if (l === NEG) return NEG;
+  if (a.cost === "n") { if (l > 15) return 2 * l - LOG2; const L = 10 ** l; return Math.log10(L * (L + 1) / 2); }
+  if (a.cost === "n1.5") { if (l > 15) return Math.log10(0.4) + 2.5 * l; const L = 10 ** l; return Math.log10(0.4 * L ** 2.5 + 0.5 * L ** 1.5 + 0.125 * Math.sqrt(L)); }
+  if (a.cost === "2n") { const L = 10 ** l; return L > 50 ? (L + 1) * LOG2 : Math.log10(2 ** (L + 1) - 2); }
+  return l;
+}
+function nextCost(a, T) { if (a.cost === "n") return T + 1; if (a.cost === "n1.5") return (T + 1) ** 1.5; if (a.cost === "2n") return 2 ** (T + 1); return 1; }
+function dln(a, T, p) { if (a.cost === "2n") return dogDln(T); return 1 / (kOf(a, p) + Math.max(T, 1e-9)); }
+function lnEff(a, l, p) {
+  if (l === NEG) return a.cost === "2n" ? 0 : (kOf(a, p) > 0 ? Math.log(kOf(a, p)) : NEG);
+  if (a.cost === "2n") return dogLnEff(10 ** l);
+  const k = kOf(a, p);
+  return (l > 15 ? l : Math.log10(k + 10 ** l)) * LN10;
+}
+
+function spendUtility(p, lShareTotal) {
+  const owned = p.util.filter(x => x.la !== NEG);
+  if (!owned.length || lShareTotal === NEG) return { rows: [], used: NEG };
+  const lShare = lShareTotal - Math.log10(owned.length);
+  let used = NEG;
+  const rows = owned.map(x => {
+    const a0 = Math.round(10 ** x.la);
+    // highest level L with 2^(L+1) - 2^(a0+1) <= share / chor
+    const lx = addLog(lShare - p.lChor, (a0 + 1) * LOG2);
+    let L = Math.floor(lx / LOG2 - 1 + 1e-9);
+    if (x.a.cap) L = Math.min(L, x.a.cap);
+    L = Math.max(L, a0);
+    const lt = Math.log10(L);
+    const cost = subLog(cumLog(x.a, lt), cumLog(x.a, x.la)) + p.lChor;
+    used = addLog(used, cost);
+    return { id: x.a.id, a: x.a, la: x.la, lt, delta: L > a0 ? Math.log10(L - a0) : NEG, cost };
+  });
+  return { rows, used };
+}
+
+function optimize(p) {
+  const hasUtil = p.util.some(x => x.la !== NEG);
+  const lAll = p.lBudget;
+  const util = spendUtility(p, hasUtil && lAll !== NEG ? lAll + Math.log10(UTIL_SHARE) : NEG);
+  // Whatever the utility ancients can't use (their levels come in 2^n steps) goes back to damage and gold
+  p = { ...p, lBudget: util.used === NEG ? lAll : subLog(lAll, util.used) };
+  const owned = p.list.filter(x => x.la !== null && x.la !== NEG);
+  if (!p.list.find(x => x.a.id === "morgulis" && x.la !== null && x.la !== NEG)) owned.push({ a: BANK, la: NEG });
+  // Sum each ancient's own cost difference, so a costly ancient doesn't swamp the precision of the others
+  const spent = t => owned.reduce((s, x, i) => addLog(s, subLog(cumLog(x.a, t[i]), cumLog(x.a, x.la))), NEG) + p.lChor;
+  const evalAt = lLam => {
+    const t = owned.map(x => Math.max(x.la, floorLog(levelFor(x.a, lLam, p))));
+    return { t, cost: spent(t) };
+  };
+  const lB = p.lBudget;
+  let res;
+  if (lB === NEG || owned.length === 0) res = { t: owned.map(x => x.la), cost: NEG };
+  else {
+    let hi = 60, lo = -(5 * Math.max(lB, 1) + 200);
+    const atLo = evalAt(lo);
+    if (atLo.cost <= lB) res = atLo;
+    else {
+      for (let i = 0; i < 200 && hi - lo > 1e-13 * Math.max(1, Math.abs(hi)); i++) {
+        const m = (lo + hi) / 2;
+        if (evalAt(m).cost <= lB) hi = m; else lo = m;
+      }
+      res = evalAt(hi);
+    }
+    // Spend small leftovers level by level
+    if (lB < 15) {
+      const chorF = 10 ** p.lChor;
+      let left = 10 ** lB - (res.cost === NEG ? 0 : 10 ** res.cost);
+      const T = res.t.map(l => (l === NEG ? 0 : Math.round(10 ** l)));
+      for (let it = 0; it < 50000; it++) {
+        let best = -1, bestG = 0, bestC = 0;
+        owned.forEach((x, i) => {
+          if (x.a.cost === "2n" && T[i] >= 3743) return;
+          const c = nextCost(x.a, T[i]) * chorF;
+          if (c <= left + 1e-9) { const g = weight(x.a, p) * dln(x.a, T[i], p) / c; if (g > bestG) { bestG = g; best = i; bestC = c; } }
+        });
+        if (best < 0) break;
+        T[best] += 1; left -= bestC;
+      }
+      res.t = T.map((v, i) => (v > 0 ? Math.log10(v) : owned[i].la));
+      res.cost = spent(res.t);
+    }
+  }
+  let dObj = 0;
+  const rows = owned.map((x, i) => {
+    const lt = res.t[i];
+    const delta = x.la === NEG ? lt : subLog(lt, x.la);
+    const cost = subLog(cumLog(x.a, lt), cumLog(x.a, x.la)) + p.lChor;
+    const g = lt === x.la ? 0 : weight(x.a, p) * (lnEff(x.a, lt, p) - lnEff(x.a, x.la, p));
+    if (Number.isFinite(g)) dObj += g;
+    return { id: x.a.id, a: x.a, la: x.la, lt, delta, cost };
+  });
+  const used = addLog(res.cost, util.used);
+  const left = used === NEG ? lAll : (used >= lAll ? NEG : subLog(lAll, used));
+  return { rows: rows.concat(util.rows), used, left, dObj };
+}
+function zoneRate(z, p) {
+  const r = z <= 140 ? 1.55 : z <= 500 ? 1.145 : Math.min(1.545, 1.145 + 0.001 * Math.floor(z / 500));
+  const goldPerZone = z <= 140 ? 1.6 : 1.15;
+  return Math.log(r) - p.alpha * Math.log(goldPerZone);
+}
+// ---------- end of math ----------
+
+const $ = id => document.getElementById(id);
+const rowsEl = $("rows");
+let usingExample = true;
+
+const ALL = ANCIENTS.concat(UTILITY);
+function buildTable() {
+  let html = "";
+  for (const sec of SECTIONS) {
+    html += `<tr class="group ${sec.cls}"><td colspan="5">${sec.label}</td></tr>`;
+    for (const a of ALL.filter(x => x.section === sec.id)) {
+      const tag = a.group === "util" ? "" : `<span class="tag ${a.group}">${a.group === "gold" ? "Gold" : "Damage"}</span>`;
+      html += `<tr class="${a.group}-row" data-id="${a.id}">
+        <td><span class="anc-name">${a.name}</span>${tag}<span class="anc-effect">${a.effect}</span></td>
+        <td><input type="text" id="lv-${a.id}" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="${a.name} current level"></td>
+        <td class="num"><span class="n target" id="t-${a.id}">—</span></td>
+        <td class="num" id="d-${a.id}"><span class="dim">—</span></td>
+        <td class="num"><span class="n dim" id="c-${a.id}">—</span></td></tr>`;
+      if (a.id === "morgulis") html += `<tr class="damage-row" id="bank-row" hidden><td><span class="anc-name">Keep unspent</span><span class="anc-effect">No Mortessa yet, so spare souls stay unspent (+10% DPS each)</span></td><td><span class="dim">—</span></td><td class="num"></td><td class="num" id="d-bank"></td><td class="num"><span class="n dim" id="c-bank"></span></td></tr>`;
+    }
+  }
+  rowsEl.innerHTML = html;
+}
+
+function setErr(id, msg) { const e = $(id + "-err"); const i = $(id); if (e) { e.textContent = msg || ""; e.hidden = !msg; } if (i) i.setAttribute("aria-invalid", msg ? "true" : "false"); }
+
+function readInputs() {
+  let ok = true;
+  const lBudget = parseBig($("souls").value);
+  if (lBudget === null) setErr("souls", ""); else if (Number.isNaN(lBudget)) { setErr("souls", "Use a number like 2500000 or 2.5e6."); ok = false; } else setErr("souls", "");
+  let chor = parseFloat($("chor").value || "0");
+  if (!Number.isFinite(chor) || chor < 0 || chor > 150) { setErr("chor", "Enter a level from 0 to 150."); ok = false; chor = 0; } else setErr("chor", "");
+  let zone = $("zone").value.trim() ? parseFloat($("zone").value.replace(/,/g, "")) : null;
+  if (zone !== null && (!Number.isFinite(zone) || zone < 1)) { setErr("zone", "Enter a zone number, or leave it empty."); zone = null; } else setErr("zone", "");
+  // Best hero assumed past level 8000 from zone 5000, so the 10x boosts per 1000 levels stop counting
+  const tenx = !(zone && zone >= 5000);
+  const alpha = (40 * Math.log(4) + (tenx ? Math.log(10) : 0)) / (1000 * Math.log(1.07));
+  const read = a => {
+    const inp = $("lv-" + a.id); const v = parseBig(inp.value);
+    const bad = Number.isNaN(v); inp.setAttribute("aria-invalid", bad ? "true" : "false");
+    return { a, la: bad || v === null ? NEG : floorLog(v) };
+  };
+  return { ok, p: { lBudget: lBudget === null || Number.isNaN(lBudget) ? NEG : lBudget, lChor: chor * Math.log10(0.95), chest: 0.01, alpha, list: ANCIENTS.map(read), util: UTILITY.map(read), zone } };
+}
+
+function render() {
+  const { p } = readInputs();
+  const r = optimize(p);
+  for (const a of ALL) {
+    $("t-" + a.id).textContent = "—"; $("t-" + a.id).className = "n target dim";
+    $("d-" + a.id).innerHTML = `<span class="dim">—</span>`; $("c-" + a.id).textContent = "—";
+  }
+  $("bank-row").hidden = true;
+  const owned = new Set();
+  for (const row of r.rows) {
+    owned.add(row.id);
+    const changed = row.lt !== row.la;
+    if (row.id === "bank") {
+      $("bank-row").hidden = !changed;
+      $("d-bank").innerHTML = changed ? `<span class="n">${formatBig(row.delta)}</span>` : "";
+      $("c-bank").textContent = changed ? formatBig(row.cost) : "";
+      continue;
+    }
+    const t = $("t-" + row.id); t.textContent = formatBig(row.lt); t.className = "n target" + (changed ? "" : " dim");
+    $("d-" + row.id).innerHTML = changed ? `<button type="button" class="delta" data-copy="${exactInt(row.delta)}" title="Copy">+${formatBig(row.delta)}</button>` : `<span class="dim">—</span>`;
+    $("c-" + row.id).textContent = changed ? formatBig(row.cost) : "—";
+  }
+  for (const a of ALL) if (!owned.has(a.id)) { $("t-" + a.id).textContent = "Not owned"; }
+
+  $("s-budget").textContent = formatBig(p.lBudget);
+  $("s-used").textContent = formatBig(r.used);
+  $("s-left").textContent = formatBig(r.left);
+  let zText = "—";
+  if (p.zone && r.dObj > 0) { const rate = zoneRate(p.zone, p); if (rate > 0) { const z = r.dObj / rate; zText = "+" + (z < 1e7 ? Math.round(z).toLocaleString("en-US") : formatBig(Math.log10(z))); } }
+  else if (p.zone && p.lBudget !== NEG) zText = "+0";
+  $("s-zones").textContent = zText;
+
+  const msg = $("message");
+  const nOwned = r.rows.filter(x => x.id !== "bank").length;
+  if (nOwned === 0) { msg.textContent = "Enter the level of at least one ancient you own."; msg.className = "message warn"; msg.hidden = false; }
+  else if (p.lBudget === NEG) { msg.textContent = "Enter your unspent hero souls to see what to level."; msg.className = "message"; msg.hidden = false; }
+  else if (r.used === NEG) { msg.textContent = "These souls aren't enough for a single level of any ancient. Keep them for next ascension."; msg.className = "message"; msg.hidden = false; }
+  else msg.hidden = true;
+  $("sample-note").hidden = !usingExample;
+  save();
+}
+
+rowsEl.addEventListener("click", e => {
+  const b = e.target.closest(".delta"); if (!b) return;
+  const text = b.dataset.copy;
+  const done = ok => { const s = document.createElement("span"); s.className = "copied"; s.textContent = ok ? "Copied" : text; b.after(s); setTimeout(() => s.remove(), 1600); };
+  try { navigator.clipboard.writeText(text).then(() => done(true), () => done(false)); } catch { done(false); }
+});
+
+const FIELDS = ["souls", "chor", "zone"];
+function apply(d) {
+  FIELDS.forEach(f => { $(f).value = d[f] ?? ""; });
+  ALL.forEach(a => { $("lv-" + a.id).value = (d.levels && d.levels[a.id]) || ""; });
+}
+function collect() {
+  const d = { levels: {} }; FIELDS.forEach(f => { d[f] = $(f).value; }); 
+  ALL.forEach(a => { d.levels[a.id] = $("lv-" + a.id).value; }); d.example = usingExample; return d;
+}
+function save() { try { localStorage.setItem("hsc-v2", JSON.stringify(collect())); } catch {} }
+function load() { try { const s = localStorage.getItem("hsc-v2"); return s ? JSON.parse(s) : null; } catch { return null; } }
+
+buildTable();
+const saved = load();
+if (saved) { apply(saved); usingExample = !!saved.example; } else apply(EXAMPLE);
+document.addEventListener("input", e => { if (e.target.matches("input")) { if (e.target.id.startsWith("lv-") || e.target.id === "souls") usingExample = false; render(); } });
+$("btn-example").addEventListener("click", () => { apply(EXAMPLE); usingExample = true; render(); });
+$("btn-clear").addEventListener("click", () => { ALL.forEach(a => { $("lv-" + a.id).value = ""; }); $("souls").value = ""; usingExample = false; render(); });
+render();
+</script>
+</body>
+</html>
