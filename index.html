@@ -54,6 +54,21 @@ body {
 }
 .wrap { max-width: 960px; margin: 0 auto; display: grid; gap: 22px; }
 header { display: grid; gap: 6px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tab {
+  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; background: none; color: var(--muted);
+  border: 0; border-bottom: 3px solid transparent; padding: 8px 14px 9px; margin-bottom: -1px;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--soul); border-bottom-color: var(--soul); }
+.tab:focus-visible { outline: 2px solid var(--soul); outline-offset: 2px; }
+.panel { display: grid; gap: 22px; }
+.settings.two { grid-template-columns: 1.4fr 1fr; }
+@media (max-width: 680px) { .settings.two { grid-template-columns: 1fr; } }
+.lvl { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 500; font-size: 16px; }
+.lvl.zero { color: var(--muted); font-weight: 400; }
+.why { display: block; font-size: 12px; color: var(--muted); }
+.notes-list { margin: 0; padding-left: 18px; color: var(--danger); font-size: 14px; }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--soul); margin: 0; }
 h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: .02em; }
 .lede { margin: 0; color: var(--muted); max-width: 62ch; }
@@ -140,10 +155,17 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
 <body>
 <div class="wrap">
   <header>
-    <p class="eyebrow">Active build · Ancients</p>
+    <p class="eyebrow">Active build</p>
     <h1>Hero Soul Calculator</h1>
-    <p class="lede">Enter your unspent hero souls and current ancient levels. The calculator spends the souls where they push your next ascension the furthest.</p>
+    <p class="lede" id="lede">Enter your unspent hero souls and current ancient levels. The calculator spends the souls where they push your next ascension the furthest.</p>
   </header>
+
+  <nav class="tabs" role="tablist" aria-label="Calculators">
+    <button class="tab" role="tab" id="tabbtn-ancients" aria-controls="tab-ancients" aria-selected="true" type="button">Ancients</button>
+    <button class="tab" role="tab" id="tabbtn-outsiders" aria-controls="tab-outsiders" aria-selected="false" type="button">Outsiders</button>
+  </nav>
+
+  <div class="panel" id="tab-ancients" role="tabpanel" aria-labelledby="tabbtn-ancients">
 
   <section class="settings" aria-label="Your souls and outsiders">
     <div class="field">
@@ -204,7 +226,54 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
       <p>The zone estimate compares the damage gain with how fast monster HP and gold grow per zone at your highest zone. Treat it as a rough guide.</p>
     </div>
   </details>
+  </div>
 
+  <div class="panel" id="tab-outsiders" role="tabpanel" aria-labelledby="tabbtn-outsiders" hidden>
+    <section class="settings two" aria-label="Your ancient souls">
+      <div class="field">
+        <label for="as">Total ancient souls</label>
+        <input type="text" id="as" inputmode="numeric" autocomplete="off" spellcheck="false">
+        <span class="hint">All your ancient souls, spent and unspent. Reset your outsiders in game before applying.</span>
+        <span class="err" id="as-err" hidden></span>
+      </div>
+      <div class="field">
+        <label for="oz">Plan for zone</label>
+        <input type="text" id="oz" inputmode="numeric" autocomplete="off" spellcheck="false">
+        <span class="hint">Optional. Leave empty to use the estimate from your ancient souls</span>
+        <span class="err" id="oz-err" hidden></span>
+      </div>
+    </section>
+
+    <section class="summary" aria-live="polite">
+      <div class="stat zones"><span class="k">Max zone (est.)</span><span class="v" id="o-zone">—</span></div>
+      <div class="stat"><span class="k">Transcendent power</span><span class="v" id="o-tp">—</span></div>
+      <div class="stat"><span class="k">Monsters per zone there</span><span class="v" id="o-mpz">—</span></div>
+      <div class="stat"><span class="k">Primal chance there</span><span class="v" id="o-primal">—</span></div>
+    </section>
+    <ul class="notes-list" id="o-notes" hidden></ul>
+
+    <section style="display:grid;gap:10px">
+      <h2>Level your outsiders to</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Outsider</th><th class="num">Level</th><th class="num">Cost (ancient souls)</th></tr></thead>
+          <tbody id="o-rows"></tbody>
+        </table>
+      </div>
+      <p class="message" id="o-total"></p>
+    </section>
+
+    <details>
+      <summary>How the outsider levels are decided</summary>
+      <div class="body">
+        <p><strong>Max zone.</strong> Each primal boss gives transcendent-power souls that grow with the zone, until they hit a cap of 5% of the hero souls you sacrificed. After that point souls grow slowly, so that zone is where your transcension levels off. It comes from your ancient souls alone. If you know a better number, enter it under "Plan for zone".</p>
+        <p><strong>Noctavar</strong> gets enough levels to keep 2 monsters per zone all the way to that zone. Monsters per zone start at 10 and rise by 0.1 every 500 zones. It assumes Kagevar is levelled from the 1% share on the Ancients tab.</p>
+        <p><strong>Evocar</strong> gets enough levels to keep primal bosses at 100%, assuming Animus is levelled from the same 1% share.</p>
+        <p><strong>The rest</strong> goes to Obolar, Valdric, Harrowyn and Virulen, one soul at a time, to whichever adds the most damage. Obolar makes every ancient cheaper, Valdric doubles, triples and so on your DPS, and Virulen lowers boss HP. Harrowyn speeds up your soul income only until the cap, so it fades out as your ancient souls grow.</p>
+        <p><strong>Quiessa, Aeonis and Trovana stay at 0.</strong> Quiessa only helps idle play. Aeonis only matters if your boss timer drops below the 5 seconds your run ends at. Trovana's chest chance is already covered by Questra.</p>
+      </div>
+    </details>
+  </div>
 </div>
 
 <script>
@@ -243,6 +312,96 @@ const EXAMPLE = {
             pluto: "8330", juggernaut: "1450", dogcog: "60", kuma: "20", atman: "22", dora: "18" },
 };
 
+// ========== OUTSIDERS ==========
+// ---------- Outsider math ----------
+// Damage grows as (hero souls)^E with the ancient ratios from the Ancients tab:
+// Mortessa 1 + Wrathgar, Morvain, Orelian 0.5 each + Rumbleheart 0.4 + gold ancients 3 × 0.5 × 0.82
+const OUT_E = 1 + 1.5 + 0.4 + 1.5 * 0.82;
+const OUT_LG = x => Math.log10(x);
+const OUTSIDERS = [
+  { id: "xyl",   name: "Quiessa",   was: "Xyliqil",      cost: "n", effect: "Boosts idle ancients" },
+  { id: "chor",  name: "Obolar",    was: "Chor'gorloth", cost: "n", effect: "−5% ancient cost per level, max 150", max: 150 },
+  { id: "phan",  name: "Valdric",   was: "Phandoryss",   cost: "1", effect: "+100% DPS per level" },
+  { id: "borb",  name: "Noctavar",  was: "Borb",         cost: "n", effect: "+12.5% Kagevar effect per level" },
+  { id: "pony",  name: "Harrowyn",  was: "Ponyboy",      cost: "n", effect: "+level² × 1000% primal boss souls" },
+  { id: "rhag",  name: "Evocar",    was: "Rhageist",     cost: "n", effect: "+25% Animus effect per level" },
+  { id: "kariq", name: "Virulen",   was: "K'Ariqua",     cost: "n", effect: "+50% Bubos effect per level" },
+  { id: "orph",  name: "Aeonis",    was: "Orphalas",     cost: "n", effect: "+75% Chronos effect per level" },
+  { id: "sen",   name: "Trovana",   was: "Sen-Akhan",    cost: "n", effect: "+100% Questra effect per level" },
+];
+const tri = L => L * (L + 1) / 2;
+
+function transcendentPower(as) { return (25 - 23 * Math.exp(-0.0003 * as)) / 100; }
+// Zone where transcendent-power souls per primal boss reach the cap (5% of the hero souls you sacrificed).
+// After this zone souls stop growing fast, so the run levels off here.
+function endZone(as) {
+  const tp = transcendentPower(as);
+  return Math.max(100, Math.floor((as - 5 * OUT_LG(400)) / OUT_LG(1 + tp)));
+}
+// Level of a 2^n utility ancient when it gets a third of 1% of the hero souls you'll have (≈ 10^(AS/5))
+function utilityLevel(as) { return Math.max(0, (as / 5 + OUT_LG(0.01 / 3)) / OUT_LG(2)); }
+
+function planOutsiders(as, zone, harrowynFade) {
+  const k = Math.floor(zone / 500);
+  const util = utilityLevel(as);
+  const plan = { xyl: 0, chor: 0, phan: 0, borb: 0, pony: 0, rhag: 0, kariq: 0, orph: 0, sen: 0 };
+  let left = Math.floor(as);
+  const notes = [];
+
+  // 1. Noctavar: keep 2 monsters per zone up to the target zone
+  const kumaF = 1 - Math.exp(-0.025 * util);
+  const mpzBase = 10 + 0.1 * k;
+  const needBorb = kumaF > 0 ? Math.max(0, Math.ceil(((mpzBase - 2) / (8 * kumaF) - 1) / 0.125 - 1e-9)) : 0;
+  let borb = needBorb;
+  while (borb > 0 && tri(borb) > left) borb--;
+  if (borb < needBorb) while (borb > 0 && tri(borb) > left / 2) borb--;
+  plan.borb = borb; left -= tri(borb);
+  if (borb < needBorb) notes.push("Not enough ancient souls for 2 monsters per zone all the way. Noctavar gets everything it can.");
+
+  // 2. Evocar: keep primal bosses at 100% up to the target zone
+  const atmanF = 1 - Math.exp(-0.013 * util);
+  const base = Math.max(5, 25 - 2 * k);
+  const needRhag = atmanF > 0 ? Math.max(0, Math.ceil(((100 - base) / (75 * atmanF) - 1) / 0.25 - 1e-9)) : 0;
+  let rhag = Math.min(needRhag, 1000);
+  while (rhag > 0 && tri(rhag) > left) rhag--;
+  plan.rhag = rhag; left -= tri(rhag);
+
+  // 3. Spend the rest where it adds the most damage (log10) per ancient soul
+  const fade = Math.max(0, 1 - as / harrowynFade); // Harrowyn only speeds up souls before the cap, so it fades out
+  const bossHp = 10 + 0.4 * k; // in monsters' worth; Bubos assumed near max
+  const bossAfter = V => Math.max(5, bossHp - 5 * (1 + 0.5 * V));
+  const gain = {
+    phan: () => OUT_LG((plan.phan + 2) / (plan.phan + 1)),
+    chor: () => plan.chor >= 150 ? 0 : OUT_E * OUT_LG(1 / 0.95) / (plan.chor + 1),
+    pony: () => fade * OUT_E * (OUT_LG(1 + 10 * (plan.pony + 1) ** 2) - OUT_LG(1 + 10 * plan.pony ** 2)) / (plan.pony + 1),
+    kariq: () => OUT_LG(bossAfter(plan.kariq) / bossAfter(plan.kariq + 1)) / (plan.kariq + 1),
+  };
+  const costNext = id => (id === "phan" ? 1 : plan[id] + 1);
+  for (let guard = 0; guard < 2e6 && left > 0; guard++) {
+    let best = null, bestG = 0, second = 0;
+    for (const id of ["chor", "pony", "kariq", "phan"]) {
+      if (costNext(id) > left) continue;
+      const g = gain[id]();
+      if (g > bestG) { second = bestG; bestG = g; best = id; } else if (g > second) second = g;
+    }
+    if (!best) break;
+    if (best === "phan" && second > 0) {
+      // jump Valdric straight to where the next-best option catches up
+      const target = Math.floor(1 / (10 ** second - 1)) - 1;
+      const step = Math.max(1, Math.min(left, target - plan.phan));
+      plan.phan += step; left -= step; continue;
+    }
+    if (best === "phan") { plan.phan += left; left = 0; break; }
+    left -= costNext(best); plan[best] += 1;
+  }
+
+  const kuma = 8 * kumaF * (1 + 0.125 * plan.borb);
+  const mpz = Math.max(2, mpzBase - kuma);
+  const primal = Math.min(100, base + 75 * atmanF * (1 + 0.25 * plan.rhag));
+  return { plan, left, notes, tp: transcendentPower(as), zone, mpz, primal, util };
+}
+
+// ========== ANCIENTS ==========
 // ---------- Big-number helpers (all values kept as log10) ----------
 const LOG2 = Math.log10(2), LN10 = Math.LN10, NEG = -Infinity;
 function parseBig(s) {
@@ -497,9 +656,60 @@ rowsEl.addEventListener("click", e => {
   try { navigator.clipboard.writeText(text).then(() => done(true), () => done(false)); } catch { done(false); }
 });
 
-const FIELDS = ["souls", "chor", "zone"];
+const OUT_WHY = {
+  xyl: "Idle only, not used in an active build",
+  orph: "Only needed if your boss timer drops below 5 seconds",
+  sen: "Questra already covers treasure chests",
+};
+function renderOutsiders() {
+  const asTxt = $("as").value.trim().replace(/[,_\s]/g, "");
+  const as = asTxt ? Number(asTxt) : NaN;
+  const ozTxt = $("oz").value.trim().replace(/[,_\s]/g, "");
+  let oz = ozTxt ? Number(ozTxt) : null;
+  if (asTxt && !(as >= 0 && Number.isFinite(as))) setErr("as", "Enter a whole number, like 1500."); else setErr("as", "");
+  if (oz !== null && !(oz >= 1 && Number.isFinite(oz))) { setErr("oz", "Enter a zone number, or leave it empty."); oz = null; } else setErr("oz", "");
+  const ok = as >= 0 && Number.isFinite(as);
+  const r = ok ? planOutsiders(as, oz || endZone(as), 20000) : null;
+  $("o-zone").textContent = r ? Math.round(r.zone).toLocaleString("en-US") : "—";
+  $("o-tp").textContent = r ? (r.tp * 100).toFixed(1) + "%" : "—";
+  $("o-mpz").textContent = r ? (Math.round(r.mpz * 10) / 10).toString() : "—";
+  $("o-primal").textContent = r ? Math.round(r.primal) + "%" : "—";
+  const notes = $("o-notes");
+  notes.innerHTML = r ? r.notes.map(n => `<li>${n}</li>`).join("") : "";
+  notes.hidden = !r || !r.notes.length;
+  let total = 0;
+  $("o-rows").innerHTML = OUTSIDERS.map(o => {
+    const L = r ? r.plan[o.id] : 0;
+    const cost = o.cost === "1" ? L : tri(L);
+    total += cost;
+    const why = L === 0 && OUT_WHY[o.id] ? OUT_WHY[o.id] : o.effect;
+    return `<tr><td><span class="anc-name">${o.name}</span><span class="why">${why}</span></td>
+      <td class="num"><span class="lvl${L ? "" : " zero"}">${r ? L.toLocaleString("en-US") : "—"}</span></td>
+      <td class="num"><span class="n dim">${r ? cost.toLocaleString("en-US") : "—"}</span></td></tr>`;
+  }).join("");
+  $("o-total").textContent = r ? `Uses ${total.toLocaleString("en-US")} of ${Math.floor(as).toLocaleString("en-US")} ancient souls.` : "Enter your total ancient souls to see your outsider levels.";
+}
+
+const LEDES = {
+  ancients: "Enter your unspent hero souls and current ancient levels. The calculator spends the souls where they push your next ascension the furthest.",
+  outsiders: "Enter your total ancient souls. The calculator splits them across your outsiders to reach the highest zone while keeping 2 monsters per zone.",
+};
+function showTab(name) {
+  if (!LEDES[name]) name = "ancients";
+  for (const t of ["ancients", "outsiders"]) {
+    $("tab-" + t).hidden = t !== name;
+    $("tabbtn-" + t).setAttribute("aria-selected", t === name ? "true" : "false");
+  }
+  $("lede").textContent = LEDES[name];
+  try { if (location.hash.slice(1) !== name) history.replaceState(null, "", "#" + name); } catch {}
+}
+$("tabbtn-ancients").addEventListener("click", () => showTab("ancients"));
+$("tabbtn-outsiders").addEventListener("click", () => showTab("outsiders"));
+window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+
+const FIELDS = ["souls", "chor", "zone", "as", "oz"];
 function apply(d) {
-  FIELDS.forEach(f => { $(f).value = d[f] ?? ""; });
+  FIELDS.forEach(f => { if (d[f] !== undefined) $(f).value = d[f]; });
   ALL.forEach(a => { $("lv-" + a.id).value = (d.levels && d.levels[a.id]) || ""; });
 }
 function collect() {
@@ -512,10 +722,13 @@ function load() { try { const s = localStorage.getItem("hsc-v2"); return s ? JSO
 buildTable();
 const saved = load();
 if (saved) { apply(saved); usingExample = !!saved.example; } else apply(EXAMPLE);
-document.addEventListener("input", e => { if (e.target.matches("input")) { if (e.target.id.startsWith("lv-") || e.target.id === "souls") usingExample = false; render(); } });
+document.addEventListener("input", e => { if (e.target.id === "as" || e.target.id === "oz") { renderOutsiders(); save(); return; } if (e.target.matches("input")) { if (e.target.id.startsWith("lv-") || e.target.id === "souls") usingExample = false; render(); } });
 $("btn-example").addEventListener("click", () => { apply(EXAMPLE); usingExample = true; render(); });
 $("btn-clear").addEventListener("click", () => { ALL.forEach(a => { $("lv-" + a.id).value = ""; }); $("souls").value = ""; usingExample = false; render(); });
+if (!$("as").value) $("as").value = "1500";
 render();
+renderOutsiders();
+showTab(location.hash.slice(1));
 </script>
 </body>
 </html>
