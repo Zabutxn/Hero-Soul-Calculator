@@ -269,8 +269,9 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
         <p><strong>Max zone.</strong> Each primal boss gives transcendent-power souls that grow with the zone, until they hit a cap of 5% of the hero souls you sacrificed. After that point souls grow slowly, and you only push a little further on damage. The estimate is tuned to a real run where 480 ancient souls reached zone 26,000. It comes from your ancient souls alone. If you know a better number, enter it under "Plan for zone".</p>
         <p><strong>Noctavar</strong> gets enough levels to keep 2 monsters per zone all the way to that zone. Monsters per zone start at 10 and rise by 0.1 every 500 zones. It assumes Kagevar is levelled from the 1% share on the Ancients tab.</p>
         <p><strong>Evocar</strong> gets enough levels to keep primal bosses at 100%, assuming Animus is levelled from the same 1% share.</p>
+        <p><strong>Trovana</strong> gets enough levels for a 100% treasure chest chance at that zone, as long as that costs no more than 5% of your ancient souls. Chest chance starts at 1% and drops slightly every 500 zones. Questra multiplies it, and Trovana makes Questra stronger.</p>
         <p><strong>The rest</strong> goes to Obolar, Valdric, Harrowyn and Virulen, one soul at a time, to whichever adds the most damage. Obolar makes every ancient cheaper, Valdric doubles, triples and so on your DPS, and Virulen lowers boss HP. Harrowyn speeds up your soul income only until the cap, so it fades out as your ancient souls grow.</p>
-        <p><strong>Quiessa, Aeonis and Trovana stay at 0.</strong> Quiessa only helps idle play. Aeonis only matters if your boss timer drops below the 5 seconds your run ends at. Trovana's chest chance is already covered by Questra.</p>
+        <p><strong>Quiessa and Aeonis stay at 0.</strong> Quiessa only helps idle play. Aeonis only matters if your boss timer drops below the 5 seconds your run ends at.</p>
       </div>
     </details>
   </div>
@@ -371,7 +372,17 @@ function planOutsiders(as, zone, harrowynFade) {
   while (rhag > 0 && tri(rhag) > left) rhag--;
   plan.rhag = rhag; left -= tri(rhag);
 
-  // 3. Spend the rest where it adds the most damage (log10) per ancient soul
+  // 3. Trovana: aim for 100% treasure chests at the target zone, but never spend more than 5% of the souls on it
+  const doraF = 1 - Math.exp(-0.002 * util);
+  const chestBase = 0.01 * 0.994 ** k;
+  const chestAt = S => Math.min(1, chestBase * (1 + 99 * doraF * (1 + S)));
+  const needSen = doraF > 0 ? Math.max(0, Math.ceil(((1 / chestBase - 1) / (99 * doraF) - 1) - 1e-9)) : 0;
+  let sen = Math.min(needSen, 10000);
+  while (sen > 0 && tri(sen) > Math.min(left, as * 0.05)) sen--;
+  if (sen < needSen && chestAt(sen) < 0.1) sen = 0; // out of reach at this zone, so skip it
+  plan.sen = sen; left -= tri(sen);
+
+  // 4. Spend the rest where it adds the most damage (log10) per ancient soul
   const fade = Math.max(0, 1 - as / harrowynFade); // Harrowyn only speeds up souls before the cap, so it fades out
   const bossHp = 10 + 0.4 * k; // in monsters' worth; Bubos assumed near max
   const bossAfter = V => Math.max(5, bossHp - 5 * (1 + 0.5 * V));
@@ -403,7 +414,7 @@ function planOutsiders(as, zone, harrowynFade) {
   const kuma = 8 * kumaF * (1 + 0.125 * plan.borb);
   const mpz = Math.max(2, mpzBase - kuma);
   const primal = Math.min(100, base + 75 * atmanF * (1 + 0.25 * plan.rhag));
-  return { plan, left, notes, tp: transcendentPower(as), zone, mpz, primal, util };
+  return { plan, left, notes, tp: transcendentPower(as), zone, mpz, primal, util, chest: chestAt(plan.sen) };
 }
 
 // ========== ANCIENTS ==========
@@ -664,7 +675,6 @@ rowsEl.addEventListener("click", e => {
 const OUT_WHY = {
   xyl: "Idle only, not used in an active build",
   orph: "Only needed if your boss timer drops below 5 seconds",
-  sen: "Questra already covers treasure chests",
 };
 function renderOutsiders() {
   const asTxt = $("as").value.trim().replace(/[,_\s]/g, "");
@@ -687,7 +697,8 @@ function renderOutsiders() {
     const L = r ? r.plan[o.id] : 0;
     const cost = o.cost === "1" ? L : tri(L);
     total += cost;
-    const why = L === 0 && OUT_WHY[o.id] ? OUT_WHY[o.id] : o.effect;
+    let why = L === 0 && OUT_WHY[o.id] ? OUT_WHY[o.id] : o.effect;
+    if (o.id === "sen" && r) why = `Treasure chest chance at that zone: ${Math.round(r.chest * 100)}%`;
     return `<tr><td><span class="anc-name">${o.name}</span><span class="why">${why}</span></td>
       <td class="num"><span class="lvl${L ? "" : " zero"}">${r ? L.toLocaleString("en-US") : "—"}</span></td>
       <td class="num"><span class="n dim">${r ? cost.toLocaleString("en-US") : "—"}</span></td></tr>`;
