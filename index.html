@@ -153,7 +153,7 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
       <span class="err" id="souls-err" hidden></span>
     </div>
     <div class="field">
-      <label for="chor">Chor'gorloth level</label>
+      <label for="chor">Obolar level</label>
       <input type="text" id="chor" inputmode="numeric" autocomplete="off">
       <span class="hint">−5% ancient cost per level, max 150</span>
       <span class="err" id="chor-err" hidden></span>
@@ -238,7 +238,7 @@ const UTIL_SHARE = 0.01;
 const BANK = { id: "bank", name: "Keep unspent", group: "damage", cost: "flat", k: 10 };
 
 const EXAMPLE = {
-  souls: "2.5e9", chor: "45", zone: "5200",
+  souls: "2.5e9", chor: "0", zone: "5200",
   levels: { morgulis: "8.1e7", argaiv: "9000", fragsworth: "9000", bhaal: "9000", mammon: "8330", mimzee: "8330",
             pluto: "8330", juggernaut: "1450", dogcog: "60", kuma: "20", atman: "22", dora: "18" },
 };
@@ -300,7 +300,7 @@ function levelFor(a, lLam, p) {
   const L = 10 ** lQ - k;
   return L > 0 ? Math.log10(L) : NEG;
 }
-// log10 of total souls to raise an ancient from 0 to L (before Chor'gorloth)
+// log10 of total souls to raise an ancient from 0 to L (before Obolar)
 function cumLog(a, l) {
   if (l === NEG) return NEG;
   if (a.cost === "n") { if (l > 15) return 2 * l - LOG2; const L = 10 ** l; return Math.log10(L * (L + 1) / 2); }
