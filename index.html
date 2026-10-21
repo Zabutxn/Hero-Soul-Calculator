@@ -266,7 +266,7 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
     <details>
       <summary>How the outsider levels are decided</summary>
       <div class="body">
-        <p><strong>Max zone.</strong> Each primal boss gives transcendent-power souls that grow with the zone, until they hit a cap of 5% of the hero souls you sacrificed. After that point souls grow slowly, so that zone is where your transcension levels off. It comes from your ancient souls alone. If you know a better number, enter it under "Plan for zone".</p>
+        <p><strong>Max zone.</strong> Each primal boss gives transcendent-power souls that grow with the zone, until they hit a cap of 5% of the hero souls you sacrificed. After that point souls grow slowly, and you only push a little further on damage. The estimate is tuned to a real run where 480 ancient souls reached zone 26,000. It comes from your ancient souls alone. If you know a better number, enter it under "Plan for zone".</p>
         <p><strong>Noctavar</strong> gets enough levels to keep 2 monsters per zone all the way to that zone. Monsters per zone start at 10 and rise by 0.1 every 500 zones. It assumes Kagevar is levelled from the 1% share on the Ancients tab.</p>
         <p><strong>Evocar</strong> gets enough levels to keep primal bosses at 100%, assuming Animus is levelled from the same 1% share.</p>
         <p><strong>The rest</strong> goes to Obolar, Valdric, Harrowyn and Virulen, one soul at a time, to whichever adds the most damage. Obolar makes every ancient cheaper, Valdric doubles, triples and so on your DPS, and Virulen lowers boss HP. Harrowyn speeds up your soul income only until the cap, so it fades out as your ancient souls grow.</p>
@@ -334,9 +334,14 @@ const tri = L => L * (L + 1) / 2;
 function transcendentPower(as) { return (25 - 23 * Math.exp(-0.0003 * as)) / 100; }
 // Zone where transcendent-power souls per primal boss reach the cap (5% of the hero souls you sacrificed).
 // After this zone souls stop growing fast, so the run levels off here.
+// Past the cap you still push further on damage alone. How far depends on how fast zones get harder there;
+// the 108 is fitted to a real run (480 ancient souls reached zone 26,000) and also matches a 204k-AS save at 2.1M.
+const POST_CAP = 108;
+function zoneDifficulty(z) { return OUT_LG(Math.min(1.545, 1.145 + 0.001 * Math.floor(z / 500))) - 0.82 * OUT_LG(1.15); }
 function endZone(as) {
   const tp = transcendentPower(as);
-  return Math.max(100, Math.floor((as - 5 * OUT_LG(400)) / OUT_LG(1 + tp)));
+  const cap = Math.max(100, (as - 5 * OUT_LG(400)) / OUT_LG(1 + tp));
+  return Math.floor(cap + POST_CAP / zoneDifficulty(cap));
 }
 // Level of a 2^n utility ancient when it gets a third of 1% of the hero souls you'll have (≈ 10^(AS/5))
 function utilityLevel(as) { return Math.max(0, (as / 5 + OUT_LG(0.01 / 3)) / OUT_LG(2)); }
