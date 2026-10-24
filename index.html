@@ -266,7 +266,7 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
     <details>
       <summary>How the outsider levels are decided</summary>
       <div class="body">
-        <p><strong>Max zone.</strong> Each primal boss gives transcendent-power souls that grow with the zone, until they hit a cap of 5% of the hero souls you sacrificed. After that point souls grow slowly, and you only push a little further on damage. The estimate is tuned to a real run where 480 ancient souls reached zone 26,000. It comes from your ancient souls alone. If you know a better number, enter it under "Plan for zone".</p>
+        <p><strong>Max zone.</strong> Each primal boss gives transcendent-power souls that grow with the zone, until they hit a cap of 5% of the hero souls you sacrificed. After that point souls grow slowly, and you only push a little further on damage. The estimate is tuned to a real run where 480 ancient souls reached zone 26,000 with heroes up to Wepwawet. The extra damage from Tsuchi through Madzi is added on top, which pushes you further. That also means more Noctavar levels to keep 2 monsters per zone. It comes from your ancient souls alone. If you know a better number, enter it under "Plan for zone".</p>
         <p><strong>Noctavar</strong> gets enough levels to keep 2 monsters per zone all the way to that zone. Monsters per zone start at 10 and rise by 0.1 every 500 zones. It assumes Kagevar is levelled from the 1% share on the Ancients tab.</p>
         <p><strong>Evocar</strong> gets enough levels to keep primal bosses at 100%, assuming Animus is levelled from the same 1% share.</p>
         <p><strong>Trovana</strong> gets enough levels for a 100% treasure chest chance at that zone, as long as that costs no more than 5% of your ancient souls. Chest chance starts at 1% and drops slightly every 500 zones. Questra multiplies it, and Trovana makes Questra stronger.</p>
@@ -349,10 +349,30 @@ function transcendentPower(as) { return (25 - 23 * Math.exp(-0.0003 * as)) / 100
 // the 108 is fitted to a real run (480 ancient souls reached zone 26,000) and also matches a 204k-AS save at 2.1M.
 const POST_CAP = 108;
 function zoneDifficulty(z) { return OUT_LG(Math.min(1.545, 1.145 + 0.001 * Math.floor(z / 500))) - goldToDamage(z) * OUT_LG(1.15); }
+// Extra damage (orders of magnitude) from the heroes after Wepwawet, compared with Wepwawet alone.
+// The 480 → 26,000 run above was before these heroes were added, so this comes on top.
+const HEROES = [ // log10 base cost, log10 base DPS including the hero's own upgrades
+  [235, Math.log10(2.471e199 * 10.5)], [500, 425.26 + Math.log10(14)], [1000, 846.127 + Math.log10(20)],
+  [2000, 1678.995 + Math.log10(15)], [4000, 3333.862 + Math.log10(11)], [8000, 6630.73 + Math.log10(52.5)],
+];
+function heroDps(h, lgGold) {
+  const L = Math.floor((lgGold - h[0]) / OUT_LG(1.07));
+  if (L < 1) return -Infinity;
+  return h[1] + OUT_LG(L) + Math.max(0, Math.floor((L - 175) / 25)) * OUT_LG(4) + Math.min(8, Math.floor(L / 1000));
+}
+function newHeroBoost(lgGold) { return Math.max(...HEROES.map(h => heroDps(h, lgGold))) - heroDps(HEROES[0], lgGold); }
+// Rough log10 of gold per monster at zone z: 1.15x per zone plus gold ancients (set so Wepwawet hits level 8000 at zone 5000)
+function goldAt(z, as) { return 167.5 + OUT_LG(1.15) * z + 1.5 * as / 5; }
 function endZone(as) {
   const tp = transcendentPower(as);
   const cap = Math.max(100, (as - 5 * OUT_LG(400)) / OUT_LG(1 + tp));
-  return Math.floor(cap + POST_CAP / zoneDifficulty(cap));
+  let z = cap + POST_CAP / zoneDifficulty(cap);
+  for (let i = 0; i < 30; i++) {
+    const next = cap + (POST_CAP + newHeroBoost(goldAt(z, as))) / zoneDifficulty(cap);
+    if (Math.abs(next - z) < 1) { z = next; break; }
+    z = (z + next) / 2;
+  }
+  return Math.floor(z);
 }
 // Level of a 2^n utility ancient when it gets a third of 1% of the hero souls you'll have (≈ 10^(AS/5))
 function utilityLevel(as) { return Math.max(0, (as / 5 + OUT_LG(0.01 / 3)) / OUT_LG(2)); }
