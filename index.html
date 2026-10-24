@@ -69,8 +69,21 @@ header { display: grid; gap: 6px; }
 .lvl.zero { color: var(--muted); font-weight: 400; }
 .why { display: block; font-size: 12px; color: var(--muted); }
 .notes-list { margin: 0; padding-left: 18px; color: var(--danger); font-size: 14px; }
-.wip { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-.wip p { margin: 0; color: var(--muted); max-width: 62ch; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: -8px; }
+.tipbox { background: var(--soul-soft); border-radius: 12px; padding: 12px 16px; }
+.tipbox ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 680px) { .cards { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.kvs { display: grid; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 5px 0; font-size: 14px; border-top: 1px solid var(--line); }
+.kv:first-child { border-top: 0; }
+.kv.three, .kv.head { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); }
+.kv.head { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.kv .n, .kv.head span:not(:first-child) { text-align: right; }
+.kv > span:first-child { color: var(--muted); }
+table.narrow { min-width: 480px; }
+.credit a { color: var(--soul); }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--soul); margin: 0; }
 h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: .02em; }
 .lede { margin: 0; color: var(--muted); max-width: 62ch; }
@@ -231,10 +244,65 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
   </div>
 
   <div class="panel" id="tab-outsiders" role="tabpanel" aria-labelledby="tabbtn-outsiders" hidden>
-    <section class="wip">
-      <h2>Work in progress</h2>
-      <p>The outsider calculator is being reworked. If you need help with your outsiders, DM <strong class="mono">@zxbutxn</strong> on Discord.</p>
+    <section class="settings two" aria-label="Your ancient souls">
+      <div class="field">
+        <label for="as">Total ancient souls</label>
+        <input type="text" id="as" inputmode="numeric" autocomplete="off" spellcheck="false">
+        <span class="hint">All your ancient souls, spent and unspent. Reset your outsiders in game before applying.</span>
+        <span class="err" id="as-err" hidden></span>
+      </div>
+      <div class="field">
+        <label for="oz">Zone override</label>
+        <input type="text" id="oz" inputmode="numeric" autocomplete="off" spellcheck="false">
+        <span class="hint">Optional. Plan for this zone instead of the estimate</span>
+        <span class="err" id="oz-err" hidden></span>
+      </div>
     </section>
+    <div class="opts">
+      <label class="check"><input type="checkbox" id="o-orph"> Level Aeonis</label>
+      <label class="check"><input type="checkbox" id="o-reserve"> Keep 10% of ancient souls unspent</label>
+    </div>
+
+    <div class="panel" id="o-results">
+      <section class="summary" aria-live="polite">
+        <div class="stat"><span class="k">Transcendent power</span><span class="v" id="o-tp">—</span></div>
+        <div class="stat zones"><span class="k">Max zone (est.)</span><span class="v" id="o-zone">—</span></div>
+        <div class="stat"><span class="k">Ancient souls after</span><span class="v" id="o-newas">—</span></div>
+        <div class="stat"><span class="k">Monsters per zone there</span><span class="v" id="o-mpz">—</span></div>
+      </section>
+
+      <section class="tipbox" id="o-tips-box" hidden><ul id="o-tips"></ul></section>
+
+      <section style="display:grid;gap:10px">
+        <h2>Level your outsiders to</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Outsider</th><th class="num">Level</th><th class="num">Total cost</th></tr></thead>
+            <tbody id="o-rows"></tbody>
+          </table>
+        </div>
+        <p class="message" id="o-total"></p>
+      </section>
+
+      <div class="cards">
+        <section class="card"><h2>End of transcension</h2><div class="kvs" id="o-est"></div></section>
+        <section class="card"><h2>Zone breakpoints</h2><div class="kvs" id="o-bp"></div></section>
+      </div>
+      <section class="card"><h2>Stats at max zone</h2><div class="kvs" id="o-stats"></div></section>
+
+      <section style="display:grid;gap:10px">
+        <h2>Next transcensions</h2>
+        <div class="table-wrap">
+          <table class="narrow">
+            <thead><tr><th class="num">Ancient souls</th><th class="num">Noctavar</th><th class="num">Max zone</th><th class="num">Final monsters per zone</th></tr></thead>
+            <tbody id="o-sim"></tbody>
+          </table>
+        </div>
+        <p class="message">Each row plans the next transcension with the ancient souls the one before is expected to end with.</p>
+      </section>
+
+      <p class="message credit">Based on <a href="https://github.com/Driej/Clicker-Heroes-Outsiders" target="_blank" rel="noopener">Driej's Clicker Heroes Outsider Calculator</a> (public domain), with this game's outsider names and heroes.</p>
+    </div>
   </div>
 </div>
 
@@ -274,7 +342,6 @@ const EXAMPLE = {
             pluto: "8330", juggernaut: "1450", dogcog: "60", kuma: "20", atman: "22", dora: "18" },
 };
 
-// ========== OUTSIDERS ==========
 // ---------- Heroes ----------
 // Heroes go up to Madzi (base cost 1e8000). Every hero gets 10x damage per 1000 levels until level 8000.
 // While your best hero is below 8000, gold is worth a bit more. These are the zones where a newly
@@ -285,128 +352,265 @@ function heroBelow8000(z) { return HERO_10X_ZONES.some(([a, b]) => z >= a && z <
 // How much 1% more gold is worth in % damage: 4x per 25 levels, 1.07x cost per level, plus 10x per 1000 levels below 8000
 function goldToDamage(z) { return (40 * Math.log(4) + (heroBelow8000(z) ? Math.log(10) : 0)) / (1000 * Math.log(1.07)); }
 
-// ---------- Outsider math ----------
-// Damage grows as (hero souls)^E with the ancient ratios from the Ancients tab:
-// Mortessa 1 + Wrathgar, Morvain, Orelian 0.5 each + Rumbleheart 0.4 + gold ancients 3 × 0.5 × gold value
-const outE = z => 1 + 1.5 + 0.4 + 1.5 * goldToDamage(z);
-const OUT_LG = x => Math.log10(x);
+// ========== OUTSIDERS ==========
+// Ported from Driej's Clicker Heroes Outsider Calculator (public domain, Unlicense):
+// https://github.com/Driej/Clicker-Heroes-Outsiders — js/main.js and js/simulator.js
+// Changes for this game: outsider names, and heroes scale 4x per 25 levels at 1.07x cost the whole way
+// (the original switches to 4.5x and 1000x for Xavira and the Ace Scouts, which this game doesn't have).
+
 const OUTSIDERS = [
-  { id: "xyl",   name: "Quiessa",   was: "Xyliqil",      cost: "n", effect: "Boosts idle ancients" },
-  { id: "chor",  name: "Obolar",    was: "Chor'gorloth", cost: "n", effect: "−5% ancient cost per level, max 150", max: 150 },
-  { id: "phan",  name: "Valdric",   was: "Phandoryss",   cost: "1", effect: "+100% DPS per level" },
-  { id: "borb",  name: "Noctavar",  was: "Borb",         cost: "n", effect: "+12.5% Kagevar effect per level" },
-  { id: "pony",  name: "Harrowyn",  was: "Ponyboy",      cost: "n", effect: "+level² × 1000% primal boss souls" },
-  { id: "rhag",  name: "Evocar",    was: "Rhageist",     cost: "n", effect: "+25% Animus effect per level" },
-  { id: "kariq", name: "Virulen",   was: "K'Ariqua",     cost: "n", effect: "+50% Bubos effect per level" },
-  { id: "orph",  name: "Aeonis",    was: "Orphalas",     cost: "n", effect: "+75% Chronos effect per level" },
-  { id: "sen",   name: "Trovana",   was: "Sen-Akhan",    cost: "n", effect: "+100% Questra effect per level" },
+  { id: "xyl",   name: "Quiessa",  effect: "Boosts idle ancients" },
+  { id: "chor",  name: "Obolar",   effect: "−5% ancient cost per level, max 150" },
+  { id: "phan",  name: "Valdric",  effect: "+100% DPS per level", flat: true },
+  { id: "pony",  name: "Harrowyn", effect: "+level² × 1000% primal boss souls" },
+  { id: "borb",  name: "Noctavar", effect: "+12.5% Kagevar effect per level" },
+  { id: "rhag",  name: "Evocar",   effect: "+25% Animus effect per level" },
+  { id: "kariq", name: "Virulen",  effect: "+50% Bubos effect per level" },
+  { id: "orph",  name: "Aeonis",   effect: "+75% Chronos effect per level" },
+  { id: "sen",   name: "Trovana",  effect: "+100% Questra effect per level" },
 ];
-const tri = L => L * (L + 1) / 2;
 
-function transcendentPower(as) { return (25 - 23 * Math.exp(-0.0003 * as)) / 100; }
-// Zone where transcendent-power souls per primal boss reach the cap (5% of the hero souls you sacrificed).
-// After this zone souls stop growing fast, so the run levels off here.
-// Past the cap you still push further on damage alone. How far depends on how fast zones get harder there;
-// the 108 is fitted to a real run (480 ancient souls reached zone 26,000) and also matches a 204k-AS save at 2.1M.
-const POST_CAP = 108;
-function zoneDifficulty(z) { return OUT_LG(Math.min(1.545, 1.145 + 0.001 * Math.floor(z / 500))) - goldToDamage(z) * OUT_LG(1.15); }
-// Extra damage (orders of magnitude) from the heroes after Wepwawet, compared with Wepwawet alone.
-// The 480 → 26,000 run above was before these heroes were added, so this comes on top.
-const HEROES = [ // log10 base cost, log10 base DPS including the hero's own upgrades
-  [235, Math.log10(2.471e199 * 10.5)], [500, 425.26 + Math.log10(14)], [1000, 846.127 + Math.log10(20)],
-  [2000, 1678.995 + Math.log10(15)], [4000, 3333.862 + Math.log10(11)], [8000, 6630.73 + Math.log10(52.5)],
-];
-function heroDps(h, lgGold) {
-  const L = Math.floor((lgGold - h[0]) / OUT_LG(1.07));
-  if (L < 1) return -Infinity;
-  return h[1] + OUT_LG(L) + Math.max(0, Math.floor((L - 175) / 25)) * OUT_LG(4) + Math.min(8, Math.floor(L / 1000));
+const borbToZone = [];
+borbToZone[184] = null;
+borbToZone.push(...[966409,979782,979782,984260,984260,984260,988749,988749,988749,988749,993248,993248,993248,993248,993248,993248,993248,993248,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1021386,1309598,1309598,1309598,1309598,1309598,1309598,1325760,1325760,1340689,1340689,1340689,1340689,1340689,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,1367215,2115108,2115108,2115108,2134603,2134603,2134603,2134603,2134603,2162796,2180849,2180849,2180849,2180849,2180849,2180849,2180849,2197526,2197526,2197526,2197526,2197526,2212929,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2227158,2429081,2459157,2459157,2459157,2459157,2459157,2459157,2459157,2459157,2459157,2486938,2486938,2486938,2486938,2486938,2486938,2486938,2486938,2547841,2547841,2547841,2547841,2547841,2547841,2547841,2547841,2547841,2580393,2580393,2580393,2580393,2580393,2580393,2610461,2610461,2610461,2610461,2610461,2610461,2610461,2638235,2638235,2638235,2638235,2638235,2638235,2638235,2638235,2638235,2638235,2638235,2663889,2663889,2663889,2663889,2663889,2663889,2663889,2663889,2663889,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2741250,2822756,2822756,2822756,2822756,2822756,2867255,2867255,2867255,2867255,2867255,2886991,2886991,2886991,2886991,2886991,2886991,2886991,2886991,2886991,2886991,2886991,2886991,2886991,2984324,2984324,2984324,2984324,2984324,2984324,2984324,2984324,2984324,3067321,3067321,3067321,3067321,3067321,3115671,3115671,3115671,3115671,3115671,3115671,3115671,3115671,3115671,3115671,3115671,3115671,3115671,3160331,3160331,3201583,3201583,3201583,3201583,3201583,3201583,3201583,3201583,3201583,3201583,3239688,3239688,3239688,3239688,3239688,3239688,3239688,3239688,3239688,3274884,3274884,3274884,3274884,3274884,3274884,3274884,3307395,3307395,3307395,3307395,3307395,3307395,3307395,3307395,3307395,3348983,3348983,3348983,3348983,3348983,3348983,3348983,3348983,3348983,3348983,3348983,3348983,3387398,3387398,3387398,3387398,3387398,3387398,3455657,3455657,3455657,3455657,3455657,3455657,3455657,3455657,3497480,3497480,3497480,3497480,3497480,3497480,3497480,3497480,3497480,3497480,3497480,3556905,3556905,3556905,3556905,3556905,3556905,3556905,3556905,3556905,3556905,3556905,3611794,3611794,3611794,3611794,3611794,3611794,3611794,3611794,3611794,3611794,3611794,3611794,3662496,3662496,3662496,3662496,3662496,3662496,3662496,3662496,3662496,3662496,3662496,3662496,3662496,3662496,3720867,3720867,3720867,3720867,3720867,3720867,3720867,3720867,3720867,3720867,3720867,3720867,3720867,3720867,3774784,3774784,3774784,3774784,3774784,3774784,3824586,3824586,3824586,3824586,3824586,3824586,3824586,3824586,3824586,3870588,3870588,3870588,3870588,3870588,3870588,3870588,3870588,3870588,3870588,3870588,3870588,3924638,3924638,3924638,3924638,3974563,4020679,4020679,4020679,4020679,4020679,4020679,4020679,4020679,4020679,4020679,4020679,4020679,4063275,4063275,4102621,4102621,4102621,4102621,4102621,4102621,4102621,4102621,4102621,4102621,4102621,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4171306,4234750,4234750,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4304891,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4369680,4429524,4429524,4429524,4429524,4429524,4429524,4429524,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4496360,4558096,4558096,4667794,4667794,4667794,4667794,4667794,4667794,4667794,4667794,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4727997,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4834971,4882417,4882417,4882417,4882417,4882417,4882417,4882417,4926243,4926243,4926243,4926243,4926243,4926243,4926243,4926243,4926243,4926243,4926243,5070557,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5100026,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5152389,5175613,5175613,5175613,5175613,5319130,5319130,5329630,5329630,5339329,5339329,5339329,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5348289,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205,5452205]);
+
+function round10(value, exp) { const f = 10 ** -exp; return Math.round(value * f) / f; }
+function getCostFromLevel(level) { return (level + 1) * (level / 2); }
+function spendAS(ratio, as) {
+  const spendable = ratio * as;
+  if (spendable < 1) return 0;
+  return Math.floor(Math.pow(8 * spendable + 1, 0.5) / 2 - 0.5);
 }
-function newHeroBoost(lgGold) { return Math.max(...HEROES.map(h => heroDps(h, lgGold))) - heroDps(HEROES[0], lgGold); }
-// Rough log10 of gold per monster at zone z: 1.15x per zone plus gold ancients (set so Wepwawet hits level 8000 at zone 5000)
-function goldAt(z, as) { return 167.5 + OUT_LG(1.15) * z + 1.5 * as / 5; }
-function endZone(as) {
-  const tp = transcendentPower(as);
-  const cap = Math.max(100, (as - 5 * OUT_LG(400)) / OUT_LG(1 + tp));
-  let z = cap + POST_CAP / zoneDifficulty(cap);
-  for (let i = 0; i < 30; i++) {
-    const next = cap + (POST_CAP + newHeroBoost(goldAt(z, as))) / zoneDifficulty(cap);
-    if (Math.abs(next - z) < 1) { z = next; break; }
-    z = (z + next) / 2;
+
+// Obolar (Chor'gorloth), Valdric (Phandoryss) and Harrowyn (Ponyboy)
+function nOS(ancientSouls, transcendentPower, zone) {
+  if (ancientSouls > 20000) {
+    ancientSouls -= 11325;
+    const pony = spendAS(0.88, ancientSouls);
+    ancientSouls -= getCostFromLevel(pony);
+    return [150, ancientSouls, pony];
   }
-  return Math.floor(z);
+  const hpMultiplier = Math.min(1.545, 1.145 + zone / 500000);
+  const hsMultiplier = Math.pow(1 + transcendentPower, 0.2);
+  const heroDamageMultiplier = 4; // this game: heroes up to Madzi, all 4x per 25 levels
+  const heroCostMultiplier = 1.07;
+  const goldToDps = Math.log10(heroDamageMultiplier) / Math.log10(heroCostMultiplier) / 25;
+  const dpsToZones = Math.log10(hpMultiplier) - Math.log10(1.15) * goldToDps;
+  let chor = 0, phan = 0, pony = 0;
+  const chorBuff = 1 / 0.95;
+
+  while (ancientSouls > 0) {
+    if (pony < 1) { ancientSouls -= ++pony; continue; }
+    else if (phan < 3) { phan++; ancientSouls--; continue; }
+
+    const damageIncrease = (phan + 2) / (phan + 1);
+    const zoneIncrease = Math.log10(damageIncrease) / dpsToZones;
+    let phanBuff = Math.pow(hsMultiplier, zoneIncrease);
+    if (phan < 50) phanBuff *= Math.pow(1.1, 1 / phan); // boost Valdric early on
+
+    if (chor < ancientSouls && chor < 150) {
+      const chorBpAS = Math.pow(chorBuff, 1 / (chor + 1));
+      if (chorBpAS >= phanBuff) {
+        if (pony < ancientSouls) {
+          const ponyBuff = (Math.pow(pony + 1, 2) * 10 + 1) / (Math.pow(pony, 2) * 10 + 1);
+          const ponyBpAS = Math.pow(ponyBuff, 1 / (pony + 1));
+          if (ponyBpAS >= chorBpAS) { ancientSouls -= ++pony; continue; }
+        }
+        ancientSouls -= ++chor;
+        continue;
+      }
+    }
+    if (pony < ancientSouls) {
+      const ponyBuff = (Math.pow(pony + 1, 2) * 10 + 1) / (Math.pow(pony, 2) * 10 + 1);
+      const ponyBpAS = Math.pow(ponyBuff, 1 / (pony + 1));
+      if (ponyBpAS >= phanBuff) { ancientSouls -= ++pony; continue; }
+    }
+    phan++;
+    ancientSouls--;
+  }
+  return [chor, phan, pony];
 }
-// Level of a 2^n utility ancient when it gets a third of 1% of the hero souls you'll have (≈ 10^(AS/5))
-function utilityLevel(as) { return Math.max(0, (as / 5 + OUT_LG(0.01 / 3)) / OUT_LG(2)); }
 
-function planOutsiders(as, zone, harrowynFade) {
-  const k = Math.floor(zone / 500);
-  const OUT_E = outE(zone);
-  const util = utilityLevel(as);
-  const plan = { xyl: 0, chor: 0, phan: 0, borb: 0, pony: 0, rhag: 0, kariq: 0, orph: 0, sen: 0 };
-  let left = Math.floor(as);
-  const notes = [];
+// Noctavar needed for 2 monsters per zone right after the first ascension (zone 130)
+function getBorbFant(ancientSouls, transcendentPower) {
+  const [chor, , pony] = nOS(ancientSouls * 0.5, transcendentPower, 100);
+  const ponyBonus = Math.pow(pony, 2) * 10 + 1;
+  const chorBonus = Math.pow(1 / 0.95, chor);
+  const tp = 1 + transcendentPower;
+  const s = tp * tp;
+  const a = s + s * s + s * s * s;
+  let logHSFant = Math.log10(Math.max(1, 20 * ponyBonus * a));
+  logHSFant += Math.log10(chorBonus);
+  const kumaFant = Math.max(1, Math.floor(logHSFant / Math.log10(2) - 3 / Math.log(2)) - 1);
+  const kumaEffect = 8 * (1 - Math.exp(-0.025 * kumaFant));
+  return Math.ceil((8 / kumaEffect - 1) * 8);
+}
 
-  // 1. Noctavar: keep 2 monsters per zone up to the target zone
-  const kumaF = 1 - Math.exp(-0.025 * util);
-  const mpzBase = 10 + 0.1 * k;
-  const needBorb = kumaF > 0 ? Math.max(0, Math.ceil(((mpzBase - 2) / (8 * kumaF) - 1) / 0.125 - 1e-9)) : 0;
-  let borb = needBorb;
-  while (borb > 0 && tri(borb) > left) borb--;
-  if (borb < needBorb) while (borb > 0 && tri(borb) > left / 2) borb--;
-  plan.borb = borb; left -= tri(borb);
-  if (borb < needBorb) notes.push("Not enough ancient souls for 2 monsters per zone all the way. Noctavar gets everything it can.");
+function outsiderPlan(ancientSouls, zoneOverride, opt) {
+  const transcendentPower = (25 - 23 * Math.exp(-0.0003 * ancientSouls)) / 100;
 
-  // 2. Evocar: keep primal bosses at 100% up to the target zone
-  const atmanF = 1 - Math.exp(-0.013 * util);
-  const base = Math.max(5, 25 - 2 * k);
-  const needRhag = atmanF > 0 ? Math.max(0, Math.ceil(((100 - base) / (75 * atmanF) - 1) / 0.25 - 1e-9)) : 0;
-  let rhag = Math.min(needRhag, 1000);
-  while (rhag > 0 && tri(rhag) > left) rhag--;
-  plan.rhag = rhag; left -= tri(rhag);
+  // Goal zone for this transcension
+  let newHze = Math.floor(zoneOverride || 0);
+  let borbTarget = 0;
+  if (newHze === 0) {
+    if (ancientSouls === 0) newHze = 300;
+    else if (ancientSouls < 100) newHze = ((ancientSouls + 42) / 5 - 6) * 51.8 * Math.log(1.25) / Math.log(1 + transcendentPower);
+    else if (ancientSouls < 10500) newHze = (1 - Math.exp(-ancientSouls / 3900)) * 200000 + 4800;
+    else if (ancientSouls < 21000) newHze = ancientSouls * 10.32 + (8000 + (10500 - ancientSouls) / 10500 * 4000) * 12;
+    else {
+      const nonBorb = ancientSouls > 433000 ? 500 : 1000;
+      const b = spendAS(1, ancientSouls - nonBorb);
+      borbTarget = b * 5000;
+      if (b > 1026) newHze = 5.46e6;
+      else if (borbToZone[b]) newHze = Math.max(borbTarget + 500, borbToZone[b]);
+      else newHze = borbTarget + 500;
+    }
+  }
+  newHze = Math.floor(newHze);
+  let newLogHeroSouls = Math.log10(1 + transcendentPower) * newHze / 5 + 6;
 
-  // 3. Trovana: aim for 100% treasure chests at the target zone, but never spend more than 5% of the souls on it
-  const doraF = 1 - Math.exp(-0.002 * util);
-  const chestBase = 0.01 * 0.994 ** k;
-  const chestAt = S => Math.min(1, chestBase * (1 + 99 * doraF * (1 + S)));
-  const needSen = doraF > 0 ? Math.max(0, Math.ceil(((1 / chestBase - 1) / (99 * doraF) - 1) - 1e-9)) : 0;
-  let sen = Math.min(needSen, 10000);
-  while (sen > 0 && tri(sen) > Math.min(left, as * 0.05)) sen--;
-  if (sen < needSen && chestAt(sen) < 0.1) sen = 0; // out of reach at this zone, so skip it
-  plan.sen = sen; left -= tri(sen);
+  // Ancient effects at that zone (Kagevar, Animus, Bubos, Chronos, Questra)
+  const ancientLevels = Math.floor(newLogHeroSouls / Math.log10(2) - 3 / Math.log10(2)) - 1;
+  const kuma = -8 * (1 - Math.exp(-0.025 * ancientLevels));
+  const atman = 75 * (1 - Math.exp(-0.013 * ancientLevels));
+  const bubos = -5 * (1 - Math.exp(-0.002 * ancientLevels));
+  const chronos = 30 * (1 - Math.exp(-0.034 * ancientLevels));
+  const dora = 9900 * (1 - Math.exp(-0.002 * ancientLevels));
 
-  // 4. Spend the rest where it adds the most damage (log10) per ancient soul
-  const fade = Math.max(0, 1 - as / harrowynFade); // Harrowyn only speeds up souls before the cap, so it fades out
-  const bossHp = 10 + 0.4 * k; // in monsters' worth; Bubos assumed near max
-  const bossAfter = V => Math.max(5, bossHp - 5 * (1 + 0.5 * V));
-  const gain = {
-    phan: () => OUT_LG((plan.phan + 2) / (plan.phan + 1)),
-    chor: () => plan.chor >= 150 ? 0 : OUT_E * OUT_LG(1 / 0.95) / (plan.chor + 1),
-    pony: () => fade * OUT_E * (OUT_LG(1 + 10 * (plan.pony + 1) ** 2) - OUT_LG(1 + 10 * plan.pony ** 2)) / (plan.pony + 1),
-    kariq: () => OUT_LG(bossAfter(plan.kariq) / bossAfter(plan.kariq + 1)) / (plan.kariq + 1),
+  // Stats at that zone before outsiders
+  const nerfs = Math.floor(newHze / 500);
+  const unbuffedMonstersPerZone = round10(10 + nerfs * 0.1, -2);
+  const unbuffedTreasureChestChance = 1 - 0.99999999 * (1 - Math.exp(-0.006 * nerfs));
+  const unbuffedBossHealth = 10 + nerfs * 0.4;
+  const unbuffedBossTimer = 30 - nerfs * 2;
+  const unbuffedPrimalBossChance = 25 - nerfs * 2;
+
+  // Outsider caps
+  const borbCap = borbTarget
+    ? Math.ceil((borbTarget - 500) / 5000)
+    : ancientSouls >= 10500
+      ? Math.ceil((newHze - 500) / 5000)
+      : Math.max(0, Math.ceil(((unbuffedMonstersPerZone - 2.1) / -kuma - 1) / 0.125));
+  const rhageistCap = Math.ceil(((100 - unbuffedPrimalBossChance) / atman - 1) / 0.25);
+  const kariquaCap = Math.ceil(((unbuffedBossHealth - 5) / -bubos - 1) / 0.5);
+  const orphalasCap = Math.max(1, Math.ceil(((2 - unbuffedBossTimer) / chronos - 1) / 0.75)) + 2;
+  const senakhanCap = Math.max(1, Math.ceil((100 / unbuffedTreasureChestChance) / (dora / 100 + 1) - 1));
+
+  // Outsider ratios
+  let rhageistRatio, kariquaRatio, orphalasRatio, senakhanRatio;
+  if (ancientSouls < 100) {
+    const r = ancientSouls / 100;
+    rhageistRatio = 0.2 * r; kariquaRatio = 0.01 * r; orphalasRatio = 0.05 * r; senakhanRatio = 0.05 * r;
+  } else if (ancientSouls < 21000) {
+    rhageistRatio = 0.2; kariquaRatio = 0.01; orphalasRatio = 0.05; senakhanRatio = 0.05;
+  } else {
+    rhageistRatio = 0; kariquaRatio = 0; orphalasRatio = 0; senakhanRatio = 0;
+  }
+  if (!opt.levelOrphalas) orphalasRatio = 0;
+
+  // Leveling
+  let remaining = ancientSouls;
+  const borbFantR = getBorbFant(ancientSouls, transcendentPower);
+  const borbFant = ancientSouls <= 2000 ? Math.min(spendAS(0.35, remaining), borbFantR) : 0;
+  const borbHze = remaining >= 21000
+    ? borbCap
+    : Math.min(spendAS(ancientSouls >= 50 ? 0.99 : 0.5, remaining), borbCap + 1);
+  let borbLevel = Math.max(borbFant, borbHze);
+  if (getCostFromLevel(borbLevel) > remaining - 5) borbLevel = spendAS(1, remaining - 5);
+  remaining -= getCostFromLevel(borbLevel);
+
+  const xyliqilLevel = 0; // Quiessa only helps idle play
+  let reserved = 0;
+  if (opt.reserve) { reserved = Math.floor(remaining * 0.1); remaining -= reserved; }
+
+  const pick = (cap, ratio) => getCostFromLevel(cap) > remaining * ratio ? spendAS(ratio, remaining) : cap;
+  const rhageistLevel = pick(rhageistCap, rhageistRatio);
+  const kariquaLevel = pick(kariquaCap, kariquaRatio);
+  const orphalasLevel = pick(orphalasCap, orphalasRatio);
+  const senakhanLevel = pick(senakhanCap, senakhanRatio);
+  remaining -= getCostFromLevel(rhageistLevel) + getCostFromLevel(kariquaLevel) + getCostFromLevel(orphalasLevel) + getCostFromLevel(senakhanLevel);
+
+  const [chorLevel, phanLevel, ponyLevel] = nOS(remaining, transcendentPower, newHze);
+  remaining -= getCostFromLevel(chorLevel) + phanLevel + getCostFromLevel(ponyLevel);
+
+  // End of transcension estimates
+  const ponyBonus = Math.pow(ponyLevel, 2) * 10;
+  const series = 1 / (1 - 1 / (1 + transcendentPower));
+  const buffedPrimalBossChance = Math.max(5, unbuffedPrimalBossChance + atman * (1 + rhageistLevel * 0.25));
+  const pbcm = Math.min(buffedPrimalBossChance, 100) / 100;
+  newLogHeroSouls = Math.log10(1 + transcendentPower) * (newHze - 100) / 5 + Math.log10(ponyBonus + 1) + Math.log10(20 * series * pbcm);
+  const newAncientSouls = Math.max(ancientSouls, Math.floor(newLogHeroSouls * 5));
+  const newTranscendentPower = (25 - 23 * Math.exp(-0.0003 * newAncientSouls)) / 100;
+
+  const buffedMPZ = unbuffedMonstersPerZone + kuma * (1 + borbLevel / 8);
+  const buffed = {
+    tcc: Math.max(1, (dora * (1 + senakhanLevel) / 100 + 1) * unbuffedTreasureChestChance),
+    bossHP: Math.floor(Math.max(5, unbuffedBossHealth + bubos * (1 + kariquaLevel * 0.5))),
+    timer: Math.max(2, unbuffedBossTimer + chronos * (1 + orphalasLevel * 0.75)),
+    pbc: buffedPrimalBossChance,
   };
-  const costNext = id => (id === "phan" ? 1 : plan[id] + 1);
-  for (let guard = 0; guard < 2e6 && left > 0; guard++) {
-    let best = null, bestG = 0, second = 0;
-    for (const id of ["chor", "pony", "kariq", "phan"]) {
-      if (costNext(id) > left) continue;
-      const g = gain[id]();
-      if (g > bestG) { second = bestG; bestG = g; best = id; } else if (g > second) second = g;
-    }
-    if (!best) break;
-    if (best === "phan" && second > 0) {
-      // jump Valdric straight to where the next-best option catches up
-      const target = Math.floor(1 / (10 ** second - 1)) - 1;
-      const step = Math.max(1, Math.min(left, target - plan.phan));
-      plan.phan += step; left -= step; continue;
-    }
-    if (best === "phan") { plan.phan += left; left = 0; break; }
-    left -= costNext(best); plan[best] += 1;
-  }
 
-  const kuma = 8 * kumaF * (1 + 0.125 * plan.borb);
-  const mpz = Math.max(2, mpzBase - kuma);
-  const primal = Math.min(100, base + 75 * atmanF * (1 + 0.25 * plan.rhag));
-  return { plan, left, notes, tp: transcendentPower(as), zone, mpz, primal, util, chest: chestAt(plan.sen) };
+  return {
+    ancientSouls, transcendentPower, newHze, newLogHeroSouls, newAncientSouls, newTranscendentPower,
+    ancientLevels, kuma, atman, bubos, chronos, dora, buffedMPZ, buffed,
+    unbuffed: { mpz: unbuffedMonstersPerZone, tcc: unbuffedTreasureChestChance, bossHP: unbuffedBossHealth, timer: unbuffedBossTimer, pbc: unbuffedPrimalBossChance },
+    levels: { xyl: xyliqilLevel, chor: chorLevel, phan: phanLevel, pony: ponyLevel, borb: borbLevel, rhag: rhageistLevel, kariq: kariquaLevel, orph: orphalasLevel, sen: senakhanLevel },
+    unspent: remaining + reserved, borbHze, borbFantR,
+    breakpoints: {
+      mpz21: -39500 - Math.floor(kuma * (1 + borbLevel / 8) * 10) * 500,
+      pbc5: 5500 + Math.floor(atman * (1 + rhageistLevel / 4) / 2) * 500,
+      bhp90: Math.ceil((bubos * (1 + kariquaLevel / 2) * -10 - 10) / 0.4) * 500,
+      timer2: 7000 + Math.floor(chronos * (1 + orphalasLevel * 0.75) / 2) * 500,
+      tcc99: Math.ceil(Math.log(0.995 / (dora / 10000 * (1 + senakhanLevel) + 0.01)) / -0.006) * 500,
+      tcc1: Math.ceil(Math.log(0.015 / (dora / 10000 * (1 + senakhanLevel) + 0.01)) / -0.006) * 500,
+    },
+  };
+}
+
+function tpDisplay(as) {
+  if (as >= 124767) return "25%";
+  const tp = 25 - 23 * Math.exp(-0.0003 * as);
+  if (tp === 25) return "24.9999%";
+  return tp.toString().substring(0, tp < 10 ? 6 : 7) + "%";
+}
+
+// Transcension simulator: run the plan again with the ancient souls each transcension is expected to end with
+function simulateTranscensions(first, opt, maxRows) {
+  const rows = [first];
+  let cur = first;
+  while (cur.newHze < 5.46e6 && rows.length < maxRows && cur.newAncientSouls > cur.ancientSouls) {
+    cur = outsiderPlan(cur.newAncientSouls, 0, opt);
+    rows.push(cur);
+  }
+  return rows;
+}
+
+function outsiderTips(r) {
+  const as = r.ancientSouls, tips = [];
+  if (as === 0) {
+    tips.push("You need ancient souls for this to work. Transcend as soon as you unlock transcendence at zone 300. It's worth it.");
+    return tips;
+  }
+  if (as < 2000) {
+    tips.push("Your first ascension should be at zone 130, so you unlock Kagevar and a few other ancients as soon as possible. This speeds up your ascensions a lot.");
+    if (r.borbHze < r.levels.borb && as > 50) {
+      tips.push(`Only ${r.borbHze} Noctavar is needed for 2 monsters per zone on your final ascension, but ${r.borbFantR} is needed for 2 monsters per zone after your first ascension at zone 130. Noctavar is levelled higher to speed up the earlier ascensions.`);
+    }
+  }
+  if (as < 10500) {
+    tips.push("Transcend after 3 or 4 ascensions that give new ancient souls. An ascension only counts if it earns more hero souls than your last transcension.");
+    tips.push("The max zone is an estimate and assumes you play active.");
+  } else {
+    if (as < 27000) {
+      tips.push("The '3 or 4 ascensions that give ancient souls' rule doesn't apply past 24% transcendent power. Keep ascending until you reach at least the estimated max zone. That takes more ascensions than you're used to.");
+      tips.push("You're close to 25% transcendent power, so transcending won't boost you as much as it did before.");
+    }
+    if (as >= 21000 && as < 50000) {
+      tips.push("Past 21,000 ancient souls you're limited mostly by Noctavar, so you transcend mainly to put more levels into it.");
+      tips.push("Evocar, Virulen, Aeonis and Trovana are impractical to keep up at high zones, so they stay at 0. This is not a bug.");
+    }
+  }
+  return tips;
 }
 
 // ========== ANCIENTS ==========
@@ -662,44 +866,72 @@ rowsEl.addEventListener("click", e => {
   try { navigator.clipboard.writeText(text).then(() => done(true), () => done(false)); } catch { done(false); }
 });
 
-const OUT_WHY = {
-  xyl: "Idle only, not used in an active build",
-  orph: "Only needed if your boss timer drops below 5 seconds",
-};
+const fmtInt = n => Math.floor(n).toLocaleString("en-US");
+function readOutOpts() {
+  return { levelOrphalas: $("o-orph").checked, reserve: $("o-reserve").checked };
+}
 function renderOutsiders() {
-  if (!$("as")) return;
   const asTxt = $("as").value.trim().replace(/[,_\s]/g, "");
-  const as = asTxt ? Number(asTxt) : NaN;
   const ozTxt = $("oz").value.trim().replace(/[,_\s]/g, "");
-  let oz = ozTxt ? Number(ozTxt) : null;
-  if (asTxt && !(as >= 0 && Number.isFinite(as))) setErr("as", "Enter a whole number, like 1500."); else setErr("as", "");
-  if (oz !== null && !(oz >= 1 && Number.isFinite(oz))) { setErr("oz", "Enter a zone number, or leave it empty."); oz = null; } else setErr("oz", "");
-  const ok = as >= 0 && Number.isFinite(as);
-  const r = ok ? planOutsiders(as, oz || endZone(as), 20000) : null;
-  $("o-zone").textContent = r ? Math.round(r.zone).toLocaleString("en-US") : "—";
-  $("o-tp").textContent = r ? (r.tp * 100).toFixed(1) + "%" : "—";
-  $("o-mpz").textContent = r ? (Math.round(r.mpz * 10) / 10).toString() : "—";
-  $("o-primal").textContent = r ? Math.round(r.primal) + "%" : "—";
-  const notes = $("o-notes");
-  notes.innerHTML = r ? r.notes.map(n => `<li>${n}</li>`).join("") : "";
-  notes.hidden = !r || !r.notes.length;
-  let total = 0;
+  const as = asTxt === "" ? 0 : Number(asTxt);
+  let oz = ozTxt === "" ? 0 : Number(ozTxt);
+  const asOk = Number.isFinite(as) && as >= 0;
+  setErr("as", asOk ? "" : "Enter a whole number of ancient souls, like 1500.");
+  if (!(Number.isFinite(oz) && oz >= 0)) { setErr("oz", "Enter a zone number, or leave it empty."); oz = 0; } else setErr("oz", "");
+  const box = $("o-results");
+  if (!asOk) { box.hidden = true; return; }
+  box.hidden = false;
+  const opt = readOutOpts();
+  const r = outsiderPlan(Math.floor(as), oz, opt);
+
+  $("o-tp").textContent = tpDisplay(r.ancientSouls);
+  $("o-zone").textContent = fmtInt(r.newHze);
+  $("o-newas").textContent = fmtInt(r.newAncientSouls) + " (+" + fmtInt(r.newAncientSouls - r.ancientSouls) + ")";
+  $("o-mpz").textContent = Math.max(2, r.buffedMPZ).toFixed(2);
+
   $("o-rows").innerHTML = OUTSIDERS.map(o => {
-    const L = r ? r.plan[o.id] : 0;
-    const cost = o.cost === "1" ? L : tri(L);
-    total += cost;
-    let why = L === 0 && OUT_WHY[o.id] ? OUT_WHY[o.id] : o.effect;
-    if (o.id === "sen" && r) why = `Treasure chest chance at that zone: ${Math.round(r.chest * 100)}%`;
-    return `<tr><td><span class="anc-name">${o.name}</span><span class="why">${why}</span></td>
-      <td class="num"><span class="lvl${L ? "" : " zero"}">${r ? L.toLocaleString("en-US") : "—"}</span></td>
-      <td class="num"><span class="n dim">${r ? cost.toLocaleString("en-US") : "—"}</span></td></tr>`;
+    const L = r.levels[o.id], cost = o.flat ? L : getCostFromLevel(L);
+    return `<tr><td><span class="anc-name">${o.name}</span><span class="why">${o.effect}</span></td>
+      <td class="num"><span class="lvl${L ? "" : " zero"}">${fmtInt(L)}</span></td>
+      <td class="num"><span class="n dim">${fmtInt(cost)}</span></td></tr>`;
   }).join("");
-  $("o-total").textContent = r ? `Uses ${total.toLocaleString("en-US")} of ${Math.floor(as).toLocaleString("en-US")} ancient souls.` : "Enter your total ancient souls to see your outsider levels.";
+  $("o-total").textContent = "Unspent: " + fmtInt(r.unspent);
+
+  const tips = outsiderTips(r);
+  $("o-tips").innerHTML = tips.map(t => `<li>${t}</li>`).join("");
+  $("o-tips-box").hidden = !tips.length;
+
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><span class="n">${v}</span></div>`;
+  $("o-est").innerHTML =
+    kv("Max zone", fmtInt(r.newHze)) + kv("log10 hero souls", r.newLogHeroSouls.toFixed(2)) +
+    kv("Ancient souls", fmtInt(r.newAncientSouls)) + kv("Transcendent power", tpDisplay(r.newAncientSouls)) +
+    kv("Ancient levels (Kagevar etc.)", fmtInt(r.ancientLevels)) +
+    kv("Kagevar", r.kuma.toFixed(2) + " monsters per zone") + kv("Animus", r.atman.toFixed(2) + "% primal chance") +
+    kv("Bubos", r.bubos.toFixed(2) + " boss life") + kv("Chronos", r.chronos.toFixed(2) + "s boss timer") +
+    kv("Questra", r.dora.toFixed(2) + "% treasure chests");
+  const bp = r.breakpoints;
+  $("o-bp").innerHTML =
+    kv("2.1 monsters per zone", fmtInt(bp.mpz21)) + kv("5% primal chance", fmtInt(bp.pbc5)) +
+    kv("90% boss health", fmtInt(bp.bhp90)) + kv("2s boss timer", fmtInt(bp.timer2)) +
+    kv("99% treasure chests", fmtInt(bp.tcc99)) + kv("1% treasure chests", fmtInt(bp.tcc1));
+  const u = r.unbuffed, b = r.buffed;
+  $("o-stats").innerHTML = `<div class="kv head"><span></span><span>Without</span><span>With outsiders</span></div>` +
+    [["Monsters per zone", u.mpz.toFixed(2), r.buffedMPZ.toFixed(2) + (r.buffedMPZ < 2 ? " (2)" : "")],
+     ["Treasure chests", u.tcc.toFixed(6) + "×", b.tcc.toFixed() + "%"],
+     ["Boss health", u.bossHP.toFixed(1) + "×", b.bossHP.toFixed() + "×"],
+     ["Boss timer", u.timer + "s", b.timer.toFixed() + "s"],
+     ["Primal chance", u.pbc + "%", b.pbc.toFixed() + "%"]]
+    .map(([k, x, y]) => `<div class="kv three"><span>${k}</span><span class="n">${x}</span><span class="n">${y}</span></div>`).join("");
+
+  const sims = oz > 0 ? [r] : simulateTranscensions(r, opt, 12);
+  $("o-sim").innerHTML = sims.map(t => `<tr><td class="num n">${fmtInt(t.ancientSouls)}</td><td class="num n">${fmtInt(t.levels.borb)}</td>
+    <td class="num n">${fmtInt(t.newHze)}</td><td class="num n">${t.buffedMPZ.toFixed(2)}${t.buffedMPZ < 2 ? " (2)" : ""}</td></tr>`).join("") +
+    (oz > 0 ? "" : `<tr><td class="num n">${fmtInt(sims[sims.length - 1].newAncientSouls)}</td><td></td><td></td><td></td></tr>`);
 }
 
 const LEDES = {
   ancients: "Enter your unspent hero souls and current ancient levels. The calculator spends the souls where they push your next ascension the furthest.",
-  outsiders: "The outsider calculator is a work in progress.",
+  outsiders: "Enter your total ancient souls to get your outsider levels and an estimate of how far this transcension goes.",
 };
 function showTab(name) {
   if (!LEDES[name]) name = "ancients";
@@ -714,7 +946,7 @@ $("tabbtn-ancients").addEventListener("click", () => showTab("ancients"));
 $("tabbtn-outsiders").addEventListener("click", () => showTab("outsiders"));
 window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 
-const FIELDS = ["souls", "chor", "zone"];
+const FIELDS = ["souls", "chor", "zone", "as", "oz"];
 function apply(d) {
   FIELDS.forEach(f => { if (d[f] !== undefined) $(f).value = d[f]; });
   ALL.forEach(a => { $("lv-" + a.id).value = (d.levels && d.levels[a.id]) || ""; });
@@ -729,10 +961,14 @@ function load() { try { const s = localStorage.getItem("hsc-v2"); return s ? JSO
 buildTable();
 const saved = load();
 if (saved) { apply(saved); usingExample = !!saved.example; } else apply(EXAMPLE);
-document.addEventListener("input", e => { if (e.target.id === "as" || e.target.id === "oz") { renderOutsiders(); save(); return; } if (e.target.matches("input")) { if (e.target.id.startsWith("lv-") || e.target.id === "souls") usingExample = false; render(); } });
+document.addEventListener("input", e => { if (["as", "oz"].includes(e.target.id)) { renderOutsiders(); save(); return; } if (e.target.matches("input")) { if (e.target.id.startsWith("lv-") || e.target.id === "souls") usingExample = false; render(); } });
 $("btn-example").addEventListener("click", () => { apply(EXAMPLE); usingExample = true; render(); });
 $("btn-clear").addEventListener("click", () => { ALL.forEach(a => { $("lv-" + a.id).value = ""; }); $("souls").value = ""; usingExample = false; render(); });
+if (!$("as").value) $("as").value = "480";
+try { const o = JSON.parse(localStorage.getItem("hsc-out") || "{}"); $("o-orph").checked = !!o.orph; $("o-reserve").checked = !!o.reserve; } catch {}
+for (const id of ["o-orph", "o-reserve"]) $(id).addEventListener("change", () => { try { localStorage.setItem("hsc-out", JSON.stringify({ orph: $("o-orph").checked, reserve: $("o-reserve").checked })); } catch {} renderOutsiders(); });
 render();
+renderOutsiders();
 showTab(location.hash.slice(1));
 </script>
 </body>
