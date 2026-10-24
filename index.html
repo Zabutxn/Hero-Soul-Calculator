@@ -220,7 +220,7 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
     <summary>How the calculator decides</summary>
     <div class="body">
       <p>Your run stops at the zone where your damage can no longer keep up with monster HP. Every ancient here multiplies either your damage or your gold, and gold becomes damage by buying hero levels.</p>
-      <p>Each 25 hero levels multiply damage by 4 and cost 5.43× more gold, so 1% more gold is worth about 0.85% more damage, or 0.82% once your best hero is past level 8000. The calculator assumes that happens from zone 5000. It gives each soul to the ancient where it adds the most damage, counting gold at that rate.</p>
+      <p>Each 25 hero levels multiply damage by 4 and cost 5.43× more gold, so 1% more gold is worth about 0.85% more damage while your best hero is below level 8000, and 0.82% once it's past. With heroes up to Madzi, a new hero takes over around zones 5,800, 13,400, 27,400, 48,900 and 89,900, and each one passes level 8000 a few thousand zones later. Your highest zone decides which value is used. It gives each soul to the ancient where it adds the most damage, counting gold at that rate.</p>
       <p>At high levels this lands on fixed ratios: Morvain and Orelian equal to Wrathgar, the gold ancients about 0.9× Wrathgar, Rumbleheart about Wrathgar<sup>0.8</sup>, and Mortessa about Wrathgar².</p>
       <p>99% of your souls go to the damage and gold ancients. The other 1% is split evenly between Kagevar, Animus and Questra. If you own none of those three, everything goes to damage and gold.</p>
       <p>The zone estimate compares the damage gain with how fast monster HP and gold grow per zone at your highest zone. Treat it as a rough guide.</p>
@@ -314,10 +314,20 @@ const EXAMPLE = {
 };
 
 // ========== OUTSIDERS ==========
+// ---------- Heroes ----------
+// Heroes go up to Madzi (base cost 1e8000). Every hero gets 10x damage per 1000 levels until level 8000.
+// While your best hero is below 8000, gold is worth a bit more. These are the zones where a newly
+// unlocked hero (Tsuchi, Skogur, Moeru, Zilar, Madzi) is your best hero and still below level 8000.
+// Worked out from hero costs and DPS, with Wepwawet reaching 8000 at zone 5000.
+const HERO_10X_ZONES = [[0, 5000], [5758, 9366], [13423, 16886], [27435, 30323], [48908, 51256], [89921, 92406]];
+function heroBelow8000(z) { return HERO_10X_ZONES.some(([a, b]) => z >= a && z < b); }
+// How much 1% more gold is worth in % damage: 4x per 25 levels, 1.07x cost per level, plus 10x per 1000 levels below 8000
+function goldToDamage(z) { return (40 * Math.log(4) + (heroBelow8000(z) ? Math.log(10) : 0)) / (1000 * Math.log(1.07)); }
+
 // ---------- Outsider math ----------
 // Damage grows as (hero souls)^E with the ancient ratios from the Ancients tab:
-// Mortessa 1 + Wrathgar, Morvain, Orelian 0.5 each + Rumbleheart 0.4 + gold ancients 3 × 0.5 × 0.82
-const OUT_E = 1 + 1.5 + 0.4 + 1.5 * 0.82;
+// Mortessa 1 + Wrathgar, Morvain, Orelian 0.5 each + Rumbleheart 0.4 + gold ancients 3 × 0.5 × gold value
+const outE = z => 1 + 1.5 + 0.4 + 1.5 * goldToDamage(z);
 const OUT_LG = x => Math.log10(x);
 const OUTSIDERS = [
   { id: "xyl",   name: "Quiessa",   was: "Xyliqil",      cost: "n", effect: "Boosts idle ancients" },
@@ -338,7 +348,7 @@ function transcendentPower(as) { return (25 - 23 * Math.exp(-0.0003 * as)) / 100
 // Past the cap you still push further on damage alone. How far depends on how fast zones get harder there;
 // the 108 is fitted to a real run (480 ancient souls reached zone 26,000) and also matches a 204k-AS save at 2.1M.
 const POST_CAP = 108;
-function zoneDifficulty(z) { return OUT_LG(Math.min(1.545, 1.145 + 0.001 * Math.floor(z / 500))) - 0.82 * OUT_LG(1.15); }
+function zoneDifficulty(z) { return OUT_LG(Math.min(1.545, 1.145 + 0.001 * Math.floor(z / 500))) - goldToDamage(z) * OUT_LG(1.15); }
 function endZone(as) {
   const tp = transcendentPower(as);
   const cap = Math.max(100, (as - 5 * OUT_LG(400)) / OUT_LG(1 + tp));
@@ -349,6 +359,7 @@ function utilityLevel(as) { return Math.max(0, (as / 5 + OUT_LG(0.01 / 3)) / OUT
 
 function planOutsiders(as, zone, harrowynFade) {
   const k = Math.floor(zone / 500);
+  const OUT_E = outE(zone);
   const util = utilityLevel(as);
   const plan = { xyl: 0, chor: 0, phan: 0, borb: 0, pony: 0, rhag: 0, kariq: 0, orph: 0, sen: 0 };
   let left = Math.floor(as);
@@ -612,9 +623,7 @@ function readInputs() {
   if (!Number.isFinite(chor) || chor < 0 || chor > 150) { setErr("chor", "Enter a level from 0 to 150."); ok = false; chor = 0; } else setErr("chor", "");
   let zone = $("zone").value.trim() ? parseFloat($("zone").value.replace(/,/g, "")) : null;
   if (zone !== null && (!Number.isFinite(zone) || zone < 1)) { setErr("zone", "Enter a zone number, or leave it empty."); zone = null; } else setErr("zone", "");
-  // Best hero assumed past level 8000 from zone 5000, so the 10x boosts per 1000 levels stop counting
-  const tenx = !(zone && zone >= 5000);
-  const alpha = (40 * Math.log(4) + (tenx ? Math.log(10) : 0)) / (1000 * Math.log(1.07));
+  const alpha = goldToDamage(zone || 0);
   const read = a => {
     const inp = $("lv-" + a.id); const v = parseBig(inp.value);
     const bad = Number.isNaN(v); inp.setAttribute("aria-invalid", bad ? "true" : "false");
