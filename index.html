@@ -69,6 +69,8 @@ header { display: grid; gap: 6px; }
 .lvl.zero { color: var(--muted); font-weight: 400; }
 .why { display: block; font-size: 12px; color: var(--muted); }
 .notes-list { margin: 0; padding-left: 18px; color: var(--danger); font-size: 14px; }
+.wip { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.wip p { margin: 0; color: var(--muted); max-width: 62ch; }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--soul); margin: 0; }
 h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: .02em; }
 .lede { margin: 0; color: var(--muted); max-width: 62ch; }
@@ -229,51 +231,10 @@ code, .mono { font-family: var(--font-num); font-size: .92em; }
   </div>
 
   <div class="panel" id="tab-outsiders" role="tabpanel" aria-labelledby="tabbtn-outsiders" hidden>
-    <section class="settings two" aria-label="Your ancient souls">
-      <div class="field">
-        <label for="as">Total ancient souls</label>
-        <input type="text" id="as" inputmode="numeric" autocomplete="off" spellcheck="false">
-        <span class="hint">All your ancient souls, spent and unspent. Reset your outsiders in game before applying.</span>
-        <span class="err" id="as-err" hidden></span>
-      </div>
-      <div class="field">
-        <label for="oz">Plan for zone</label>
-        <input type="text" id="oz" inputmode="numeric" autocomplete="off" spellcheck="false">
-        <span class="hint">Optional. Leave empty to use the estimate from your ancient souls</span>
-        <span class="err" id="oz-err" hidden></span>
-      </div>
+    <section class="wip">
+      <h2>Work in progress</h2>
+      <p>The outsider calculator is being reworked. If you need help with your outsiders, DM <strong class="mono">@zabutxn</strong> on Discord.</p>
     </section>
-
-    <section class="summary" aria-live="polite">
-      <div class="stat zones"><span class="k">Max zone (est.)</span><span class="v" id="o-zone">—</span></div>
-      <div class="stat"><span class="k">Transcendent power</span><span class="v" id="o-tp">—</span></div>
-      <div class="stat"><span class="k">Monsters per zone there</span><span class="v" id="o-mpz">—</span></div>
-      <div class="stat"><span class="k">Primal chance there</span><span class="v" id="o-primal">—</span></div>
-    </section>
-    <ul class="notes-list" id="o-notes" hidden></ul>
-
-    <section style="display:grid;gap:10px">
-      <h2>Level your outsiders to</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Outsider</th><th class="num">Level</th><th class="num">Cost (ancient souls)</th></tr></thead>
-          <tbody id="o-rows"></tbody>
-        </table>
-      </div>
-      <p class="message" id="o-total"></p>
-    </section>
-
-    <details>
-      <summary>How the outsider levels are decided</summary>
-      <div class="body">
-        <p><strong>Max zone.</strong> Each primal boss gives transcendent-power souls that grow with the zone, until they hit a cap of 5% of the hero souls you sacrificed. After that point souls grow slowly, and you only push a little further on damage. The estimate is tuned to a real run where 480 ancient souls reached zone 26,000 with heroes up to Wepwawet. The extra damage from Tsuchi through Madzi is added on top, which pushes you further. That also means more Noctavar levels to keep 2 monsters per zone. It comes from your ancient souls alone. If you know a better number, enter it under "Plan for zone".</p>
-        <p><strong>Noctavar</strong> gets enough levels to keep 2 monsters per zone all the way to that zone. Monsters per zone start at 10 and rise by 0.1 every 500 zones. It assumes Kagevar is levelled from the 1% share on the Ancients tab.</p>
-        <p><strong>Evocar</strong> gets enough levels to keep primal bosses at 100%, assuming Animus is levelled from the same 1% share.</p>
-        <p><strong>Trovana</strong> gets enough levels for a 100% treasure chest chance at that zone, as long as that costs no more than 5% of your ancient souls. Chest chance starts at 1% and drops slightly every 500 zones. Questra multiplies it, and Trovana makes Questra stronger.</p>
-        <p><strong>The rest</strong> goes to Obolar, Valdric, Harrowyn and Virulen, one soul at a time, to whichever adds the most damage. Obolar makes every ancient cheaper, Valdric doubles, triples and so on your DPS, and Virulen lowers boss HP. Harrowyn speeds up your soul income only until the cap, so it fades out as your ancient souls grow.</p>
-        <p><strong>Quiessa and Aeonis stay at 0.</strong> Quiessa only helps idle play. Aeonis only matters if your boss timer drops below the 5 seconds your run ends at.</p>
-      </div>
-    </details>
   </div>
 </div>
 
@@ -706,6 +667,7 @@ const OUT_WHY = {
   orph: "Only needed if your boss timer drops below 5 seconds",
 };
 function renderOutsiders() {
+  if (!$("as")) return;
   const asTxt = $("as").value.trim().replace(/[,_\s]/g, "");
   const as = asTxt ? Number(asTxt) : NaN;
   const ozTxt = $("oz").value.trim().replace(/[,_\s]/g, "");
@@ -737,7 +699,7 @@ function renderOutsiders() {
 
 const LEDES = {
   ancients: "Enter your unspent hero souls and current ancient levels. The calculator spends the souls where they push your next ascension the furthest.",
-  outsiders: "Enter your total ancient souls. The calculator splits them across your outsiders to reach the highest zone while keeping 2 monsters per zone.",
+  outsiders: "The outsider calculator is a work in progress.",
 };
 function showTab(name) {
   if (!LEDES[name]) name = "ancients";
@@ -752,7 +714,7 @@ $("tabbtn-ancients").addEventListener("click", () => showTab("ancients"));
 $("tabbtn-outsiders").addEventListener("click", () => showTab("outsiders"));
 window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 
-const FIELDS = ["souls", "chor", "zone", "as", "oz"];
+const FIELDS = ["souls", "chor", "zone"];
 function apply(d) {
   FIELDS.forEach(f => { if (d[f] !== undefined) $(f).value = d[f]; });
   ALL.forEach(a => { $("lv-" + a.id).value = (d.levels && d.levels[a.id]) || ""; });
@@ -770,9 +732,7 @@ if (saved) { apply(saved); usingExample = !!saved.example; } else apply(EXAMPLE)
 document.addEventListener("input", e => { if (e.target.id === "as" || e.target.id === "oz") { renderOutsiders(); save(); return; } if (e.target.matches("input")) { if (e.target.id.startsWith("lv-") || e.target.id === "souls") usingExample = false; render(); } });
 $("btn-example").addEventListener("click", () => { apply(EXAMPLE); usingExample = true; render(); });
 $("btn-clear").addEventListener("click", () => { ALL.forEach(a => { $("lv-" + a.id).value = ""; }); $("souls").value = ""; usingExample = false; render(); });
-if (!$("as").value) $("as").value = "1500";
 render();
-renderOutsiders();
 showTab(location.hash.slice(1));
 </script>
 </body>
